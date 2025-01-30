@@ -8,11 +8,20 @@ const app = new App({
 await app.start();
 app.logger.info("Bolt app is running");
 
+const eventStartDate = new Date("2025-02-10T00:00:00Z");
+
 // Listen for a slash command invocation
 app.command("/sock", async ({ ack, body, client, logger }) => {
   await ack();
 
   app.logger.info(body);
+
+  let rn = eventStartDate.getTime() - Date.now();
+  let days = Math.floor(rn / (86400 * 1000));
+  rn -= days * (86400 * 1000);
+  let hours = Math.floor(rn / (60 * 60 * 1000));
+  rn -= hours * (60 * 60 * 1000);
+  let minutes = Math.floor(rn / (60 * 1000));
 
   try {
     // Call views.open with the built-in client
@@ -51,7 +60,7 @@ app.command("/sock", async ({ ack, body, client, logger }) => {
             type: "header",
             text: {
               type: "plain_text",
-              text: "Starts in 8 days, 17 hours, 36 minutes.",
+              text: `Starts in ${days} days, ${hours} hours, and ${minutes} minutes! :clock10:`,
               emoji: true,
             },
           },
