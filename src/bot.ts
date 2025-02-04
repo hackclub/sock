@@ -642,16 +642,18 @@ async function createWakaUser(userInfo: UsersInfoResponse) {
     throw new Error("Invalid user info");
   }
 
-  console.log({ userInfo });
+  const [userRow] =
+    await sql`select hakatime_password from users where slack_id = ${userInfo.user.id};`;
 
-  const password = crypto.randomUUID() as string;
+  console.log({ userInfo, userRow });
+
   const payload = {
     location: userInfo.user.tz ?? "Factory",
     email: userInfo.user.profile?.email ?? "",
-    password,
-    password_repeat: password,
+    password: userRow.hakatime_password,
+    password_repeat: userRow.hakatime_password,
     name: userInfo.user.name,
-    username: "test4" + process.env.WAKA_USERNAME_PREFIX + userInfo.user.id,
+    username: "test5" + process.env.WAKA_USERNAME_PREFIX + userInfo.user.id,
   };
 
   return await fetch("https://waka.hackclub.com/signup", {
@@ -670,3 +672,23 @@ async function createWakaUser(userInfo: UsersInfoResponse) {
 //     await hackSql`select * from users where id LIKE '%sockathon-' || ${body.user_id};`;
 //   return user.api_key;
 // }
+
+async function getLatestWakaData(slackId: string): Promise<{
+  project: string;
+  language: string;
+  editor?: string;
+  time: any;
+} | null> {
+  console.log({ slackId });
+  const [hb] =
+    await hackSql`select * from heartbeats where user_id = 'test5sockathon-' || ${slackId} order by time desc limit 1;`;
+
+  if (!hb) return null;
+
+  return {
+    project: hb.project,
+    language: hb.language,
+    editor: hb.editor,
+    time: hb.time,
+  };
+}
