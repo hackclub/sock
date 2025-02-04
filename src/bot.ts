@@ -399,9 +399,16 @@ app.command("/sock", async ({ ack, body, client, logger }) => {
     .then((d) => d.json())
     .catch((err) => logger.error(err));
 
-  console.log({ wakaResponse });
+  const latestWakaData = await getLatestWakaData(body.user_id);
 
-  console.log({ real_name, tz, tz_label, tz_offset, extendedUserRow });
+  console.log({
+    real_name,
+    tz,
+    tz_label,
+    tz_offset,
+    extendedUserRow,
+    latestWakaData,
+  });
 
   let rn = eventStartDate.getTime() - Date.now();
   let days = Math.floor(rn / (86400 * 1000));
@@ -441,6 +448,84 @@ app.command("/sock", async ({ ack, body, client, logger }) => {
           },
         ],
       };
+
+  const hakatimeInfoBlock = latestWakaData
+    ? [
+        {
+          type: "section",
+          text: {
+            type: "mrkdwn",
+            text: `✅ Set up Hakatime; ${timeAgo.format(latestWakaData?.time)} you edited your ${latestWakaData?.language} project _${latestWakaData?.project}_ in ${latestWakaData?.editor}`,
+          },
+        },
+      ]
+    : [
+        {
+          type: "section",
+          text: {
+            type: "mrkdwn",
+            text: "_...and_ configure <https://github.com/hackclub/hackatime|Hakatime> so we can track how long you've coded.\n*If you've configured it previously, you'll need to do it again for this.*",
+          },
+        },
+        {
+          type: "actions",
+          elements: [
+            {
+              type: "button",
+              text: {
+                type: "plain_text",
+                text: "I'm on Windows :windows10-windows-10-logo:",
+                emoji: true,
+              },
+              action_id: "action-waka-setup-windows",
+            },
+            {
+              type: "button",
+              text: {
+                type: "plain_text",
+                text: "I'm on MacOS  or Linux :linux:",
+                emoji: true,
+              },
+              action_id: "action-waka-setup-unix",
+            },
+          ],
+        },
+      ];
+
+  const hakatimeInstallRefresher = latestWakaData
+    ? [
+        {
+          type: "section",
+          text: {
+            type: "mrkdwn",
+            text: "_...and_ configure <https://github.com/hackclub/hackatime|Hakatime> so we can track how long you've coded.\n*If you've configured it previously, you'll need to do it again for this.*",
+          },
+        },
+        {
+          type: "actions",
+          elements: [
+            {
+              type: "button",
+              text: {
+                type: "plain_text",
+                text: "Windows :windows10-windows-10-logo: install instructions ",
+                emoji: true,
+              },
+              action_id: "action-waka-setup-windows",
+            },
+            {
+              type: "button",
+              text: {
+                type: "plain_text",
+                text: "MacOS  or Linux :linux: install instructions",
+                emoji: true,
+              },
+              action_id: "action-waka-setup-unix",
+            },
+          ],
+        },
+      ]
+    : [];
 
   try {
     // Call views.open with the built-in client
@@ -494,36 +579,7 @@ app.command("/sock", async ({ ack, body, client, logger }) => {
             },
           },
           teamInfoBlock,
-          {
-            type: "section",
-            text: {
-              type: "mrkdwn",
-              text: "_...and_ configure <https://github.com/hackclub/hackatime|Hakatime> so we can track how long you've coded.\n*If you've configured it previously, you'll need to do it again for this.*",
-            },
-          },
-          {
-            type: "actions",
-            elements: [
-              {
-                type: "button",
-                text: {
-                  type: "plain_text",
-                  text: "I'm on Windows :windows10-windows-10-logo:",
-                  emoji: true,
-                },
-                action_id: "action-waka-setup-windows",
-              },
-              {
-                type: "button",
-                text: {
-                  type: "plain_text",
-                  text: "I'm on MacOS  or Linux :linux:",
-                  emoji: true,
-                },
-                action_id: "action-waka-setup-unix",
-              },
-            ],
-          },
+          ...hakatimeInfoBlock,
           {
             type: "divider",
           },
@@ -542,6 +598,7 @@ app.command("/sock", async ({ ack, body, client, logger }) => {
               emoji: true,
             },
           },
+          ...hakatimeInstallRefresher,
           {
             type: "section",
             text: {
