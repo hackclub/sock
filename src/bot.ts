@@ -509,7 +509,7 @@ app.command("/sock", async ({ ack, body, client, logger }) => {
               type: "button",
               text: {
                 type: "plain_text",
-                text: "Windows :windows10-windows-10-logo: install instructions ",
+                text: "Windows install instructions ",
                 emoji: true,
               },
               action_id: "action-waka-setup-windows",
@@ -518,7 +518,7 @@ app.command("/sock", async ({ ack, body, client, logger }) => {
               type: "button",
               text: {
                 type: "plain_text",
-                text: "MacOS  or Linux :linux: install instructions",
+                text: "MacOS/Linux install instructions",
                 emoji: true,
               },
               action_id: "action-waka-setup-unix",
@@ -584,13 +584,13 @@ app.command("/sock", async ({ ack, body, client, logger }) => {
           {
             type: "divider",
           },
-          {
-            type: "section",
-            text: {
-              type: "mrkdwn",
-              text: "*Currently, your ass has done neither of these things.* The above will change as you complete them!",
-            },
-          },
+          // {
+          //   type: "section",
+          //   text: {
+          //     type: "mrkdwn",
+          //     text: "*Currently, your ass has done neither of these things.* The above will change as you complete them!",
+          //   },
+          // },
           {
             type: "header",
             text: {
