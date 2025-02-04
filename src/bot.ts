@@ -1,7 +1,9 @@
 import { App } from "@slack/bolt";
+import type { UsersInfoResponse } from "@slack/web-api";
 import { SQL, sql } from "bun";
 import { Cron } from "croner";
 
+//#region DB setup
 await sql`CREATE TABLE IF NOT EXISTS clans (
     id SERIAL PRIMARY KEY,
     name TEXT NOT NULL UNIQUE,
@@ -20,6 +22,29 @@ await sql`CREATE TABLE IF NOT EXISTS users (
     tz_offset INTEGER NOT NULL,
     clan_id INTEGER REFERENCES clans(id)
 )`;
+//#endregion
+
+//#region Hackatime PG connection
+if (
+  !process.env.HACK_PG_URL ||
+  !process.env.HACK_PG_HOST ||
+  !process.env.HACK_PG_USER ||
+  !process.env.HACK_PG_PASS ||
+  !process.env.HACK_PG_TABL
+) {
+  console.error("Some HACK_PG_**** var is not present. Exiting.");
+  process.exit();
+}
+
+//@ts-expect-error The SQL constructor wants all the options, but I just want to go with the defaults for the omitted SQLOptions fields.
+const hackSql = new SQL({
+  url: process.env.HACK_PG_URL!,
+  hostname: process.env.HACK_PG_HOST!,
+  username: process.env.HACK_PG_USER!,
+  password: process.env.HACK_PG_PASS!,
+  database: process.env.HACK_PG_TABL!,
+});
+//#endregion
 
 const app = new App({
   token: process.env.SLACK_BOT_TOKEN,
@@ -29,7 +54,60 @@ const app = new App({
 await app.start();
 app.logger.info("Bolt app is running");
 
-const eventStartDate = new Date("2025-02-10T00:00:00Z");
+const eventStartDate = new Date("2025-02-05T00:00:00Z");
+
+app.action("action-waka-setup-unix", async ({ ack, body, client, logger }) => {
+  const userInfo = await app.client.users.info({ user: body.user.id });
+  const apiKeyResponse = await createWakaUser(userInfo).then((d) => d.json());
+
+  await ack();
+
+  try {
+    if (body.type !== "block_actions" || !body.view) {
+      return;
+    }
+    // Call views.update with the built-in client
+    const result = await client.views.push({
+      trigger_id: body.trigger_id,
+      // View payload with updated blocks
+      view: {
+        type: "modal",
+        callback_id: "modal-waka-setup-unix",
+        title: {
+          type: "plain_text",
+          text: "Setup for macOS/Linux",
+        },
+        blocks: [
+          {
+            type: "section",
+            block_id: "section-intro",
+            text: {
+              type: "mrkdwn",
+              text: `This should be the content of the file at \`~/.wakatime.cfg\`.
+\`\`\`\n[settings]\napi_url = https://waka.hackclub.com/api\napi_key = ${apiKeyResponse.api_key}\n\`\`\`
+
+If you don't know what this means, that's okay! Follow these steps;
+
+1. Press ⌘ (command) and spacebar together, then search for "Terminal"
+2. Paste the following text in: \`echo "[settings]\\napi_url = https://waka.hackclub.com/api\\napi_key = ${apiKeyResponse.api_key}" > ~/.wakatime.cfg\`
+3. Press ⏎ return!
+              `,
+            },
+          },
+        ],
+        close: {
+          type: "plain_text",
+          text: "Back",
+        },
+      },
+    });
+  } catch (error) {
+    logger.error(error);
+  }
+});
+
+// win:
+// cmd /c "echo [settings]>%USERPROFILE%\.wakatime.cfg && echo api_url = https://waka.hackclub.com/api>>%USERPROFILE%\.wakatime.cfg && echo api_key = <TOKEN>>>%USERPROFILE%\.wakatime.cfg"
 
 // Open modal
 app.action("action-clan-create", async ({ ack, body, client, logger }) => {
@@ -246,7 +324,7 @@ app.command("/sock", async ({ ack, body, client, logger }) => {
   app.logger.info(body);
 
   const userInfo = await app.client.users.info({ user: body.user_id });
-  console.log(userInfo);
+  console.log("sockinit", { userInfo });
 
   if (!userInfo.ok || !userInfo?.user?.profile) {
     logger.error(`Failed to get user profile for ${body.user_id}`);
@@ -260,6 +338,12 @@ app.command("/sock", async ({ ack, body, client, logger }) => {
       on conflict do nothing`;
     return await tx`select users.*, clans.name as clan_name, clans.join_code from users left join clans on users.clan_id = clans.id where users.slack_id = ${body.user_id}`;
   });
+
+  const wakaResponse = await createWakaUser(userInfo)
+    .then((d) => d.json())
+    .catch((err) => logger.error(err));
+
+  console.log({ wakaResponse });
 
   console.log({ real_name, tz, tz_label, tz_offset, extendedUserRow });
 
@@ -371,8 +455,7 @@ app.command("/sock", async ({ ack, body, client, logger }) => {
                   text: "I'm on Windows :windows10-windows-10-logo:",
                   emoji: true,
                 },
-                value: "click_me_123",
-                action_id: "modal_hakatime_setup_windows",
+                action_id: "action-waka-setup-windows",
               },
               {
                 type: "button",
@@ -381,8 +464,7 @@ app.command("/sock", async ({ ack, body, client, logger }) => {
                   text: "I'm on MacOS  or Linux :linux:",
                   emoji: true,
                 },
-                value: "click_me_123",
-                action_id: "modal_hakatime_setup_unix",
+                action_id: "action-waka-setup-unix",
               },
             ],
           },
@@ -420,31 +502,57 @@ app.command("/sock", async ({ ack, body, client, logger }) => {
   }
 });
 
-const job = new Cron("* * * * *", async () => {
-  console.log("This will run every fifth second");
+// const job = new Cron("* * * * *", async () => {
+//   const recentRows =
+//     await hackSql`select * from heartbeats order by created_at desc limit 10;`;
 
-  if (
-    !process.env.HACK_PG_URL ||
-    !process.env.HACK_PG_HOST ||
-    !process.env.HACK_PG_USER ||
-    !process.env.HACK_PG_PASS ||
-    !process.env.HACK_PG_TABL
-  ) {
-    console.error("Some HACK_PG_**** var is not present. Exiting.");
+//   console.log(recentRows);
+// });
+
+async function createWakaUser(userInfo: UsersInfoResponse) {
+  if (!process.env.WAKA_USERNAME_PREFIX) {
+    console.error("Env var WAKA_USERNAME_PREFIX not set. Exiting.");
+    process.exit();
+  }
+  if (!process.env.WAKA_API_KEY) {
+    console.error("Env var WAKA_API_KEY not set. Exiting.");
     process.exit();
   }
 
-  //@ts-expect-error The SQL constructor wants all the options, but I just want to go with the defaults for the omitted SQLOptions fields.
-  const hackSql = new SQL({
-    url: process.env.HACK_PG_URL!,
-    hostname: process.env.HACK_PG_HOST!,
-    username: process.env.HACK_PG_USER!,
-    password: process.env.HACK_PG_PASS!,
-    database: process.env.HACK_PG_TABL!,
+  if (
+    !userInfo.ok ||
+    !userInfo.user ||
+    !userInfo.user.id ||
+    !userInfo.user.name
+  ) {
+    throw new Error("Invalid user info");
+  }
+
+  console.log({ userInfo });
+
+  const password = crypto.randomUUID() as string;
+  const payload = {
+    location: userInfo.user.tz ?? "Factory",
+    email: userInfo.user.profile?.email ?? "",
+    password,
+    password_repeat: password,
+    name: userInfo.user.name,
+    username: "test4" + process.env.WAKA_USERNAME_PREFIX + userInfo.user.id,
+  };
+
+  return await fetch("https://waka.hackclub.com/signup", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.WAKA_API_KEY}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: new URLSearchParams(payload),
   });
+}
 
-  const recentRows =
-    await hackSql`select * from heartbeats order by created_at desc limit 1000;`;
-
-  console.log(recentRows);
-});
+/// Body is passed for safety, so you can only get the current user's API key.
+// async function getWakaApiKey(body: SlashCommand) {
+//   const [user] =
+//     await hackSql`select * from users where id LIKE '%sockathon-' || ${body.user_id};`;
+//   return user.api_key;
+// }
