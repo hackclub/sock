@@ -106,8 +106,58 @@ If you don't know what this means, that's okay! Follow these steps;
   }
 });
 
-// win:
-// cmd /c "echo [settings]>%USERPROFILE%\.wakatime.cfg && echo api_url = https://waka.hackclub.com/api>>%USERPROFILE%\.wakatime.cfg && echo api_key = <TOKEN>>>%USERPROFILE%\.wakatime.cfg"
+app.action(
+  "action-waka-setup-windows",
+  async ({ ack, body, client, logger }) => {
+    const userInfo = await app.client.users.info({ user: body.user.id });
+    const apiKeyResponse = await createWakaUser(userInfo).then((d) => d.json());
+
+    await ack();
+
+    try {
+      if (body.type !== "block_actions" || !body.view) {
+        return;
+      }
+      // Call views.update with the built-in client
+      const result = await client.views.push({
+        trigger_id: body.trigger_id,
+        // View payload with updated blocks
+        view: {
+          type: "modal",
+          callback_id: "modal-waka-setup-windows",
+          title: {
+            type: "plain_text",
+            text: "Setup for Windows",
+          },
+          blocks: [
+            {
+              type: "section",
+              block_id: "section-intro",
+              text: {
+                type: "mrkdwn",
+                text: `This should be the content of the file at \`~/.wakatime.cfg\`.
+\`\`\`\n[settings]\napi_url = https://waka.hackclub.com/api\napi_key = ${apiKeyResponse.api_key}\n\`\`\`
+
+If you don't know what this means, that's okay! Follow these steps;
+
+1. Press the Windows key, then search for "Powershell"
+2. Paste the following text in: \`cmd /c "echo [settings]>%USERPROFILE%\.wakatime.cfg && echo api_url = https://waka.hackclub.com/api>>%USERPROFILE%\.wakatime.cfg && echo api_key = ${apiKeyResponse.api_key}>>%USERPROFILE%\.wakatime.cfg"\`
+3. Press ⏎ return!
+              `,
+              },
+            },
+          ],
+          close: {
+            type: "plain_text",
+            text: "Back",
+          },
+        },
+      });
+    } catch (error) {
+      logger.error(error);
+    }
+  },
+);
 
 // Open modal
 app.action("action-clan-create", async ({ ack, body, client, logger }) => {
