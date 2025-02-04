@@ -28,6 +28,12 @@ await sql`CREATE TABLE IF NOT EXISTS users (
     clan_id INTEGER REFERENCES clans(id),
     hakatime_password text DEFAULT upper(substr(md5(random()::text), 1, 32))
 )`;
+
+// Allows bot sharding
+await sql`CREATE TABLE IF NOT EXISTS users_last_tracked_hb (
+    user_id TEXT NOT NULL PRIMARY KEY REFERENCES users(slack_id),
+    hb_id BIGINT NOT NULL UNIQUE
+)`;
 //#endregion
 
 //#region Hackatime PG connection
@@ -616,11 +622,56 @@ app.command("/sock", async ({ ack, body, client, logger }) => {
   }
 });
 
-// const job = new Cron("* * * * *", async () => {
-//   const recentRows =
-//     await hackSql`select * from heartbeats order by created_at desc limit 10;`;
+const lastTrackedHbIds = new Map<string, number>(); // <users.slack_id, heartbeats.id>
+const empty = lastTrackedHbIds.size === 0;
+const minIdToSearchFor = empty ? 0 : Math.min(...lastTrackedHbIds.values());
+console.log({ minIdToSearchFor });
 
-//   console.log(recentRows);
+const recentHeartbeats = await hackSql`
+  SELECT * FROM heartbeats
+  WHERE id > ${minIdToSearchFor}
+  ORDER BY time DESC
+  LIMIT 1000
+`;
+
+// if (recentHeartbeats.length === 0) {
+//   return; // No new heartbeats to process
+// }
+
+for (const hb of recentHeartbeats) {
+  const slackId: string = hb.user_id.slice(-11);
+  if (!lastTrackedHbIds.get(slackId) || hb.id > lastTrackedHbIds.get(slackId)) {
+    lastTrackedHbIds.set(slackId, hb.id);
+  }
+}
+
+// TODO: i have the new hbs. i need to normalise their time zones as per zrl doc, query /summary, then create the participanthackatimedailysummary table and overwrite them.
+// if the last summary is less than 15 mins, and the new summary is greater than, then send a message saying "nice! you've got over 15 mins for today (monday)
+
+// const job = new Cron("* * * * *", async () => {
+//   const empty = lastTrackedHbIds.size === 0;
+//   const minIdToSearchFor = empty ? 0 : Math.min(...lastTrackedHbIds.values());
+
+//   const recentHeartbeats = await hackSql`
+//     SELECT * FROM heartbeats
+//     WHERE id > ${minIdToSearchFor}
+//     ORDER BY time DESC
+//     LIMIT 1000
+//   `;
+
+//   if (recentHeartbeats.length === 0) {
+//     return; // No new heartbeats to process
+//   }
+
+//   const latestPerUser: any = {};
+//   for (const hb of recentHeartbeats) {
+//     const slackId: string = hb.user_id.split("-")[1];
+//     if (!latestPerUser[slackId] || hb.id > latestPerUser[slackId].id) {
+//       latestPerUser[slackId] = hb;
+//     }
+//   }
+
+//   console.log({ latestPerUser });
 // });
 
 async function createWakaUser(userInfo: UsersInfoResponse) {
