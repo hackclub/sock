@@ -137,11 +137,31 @@ app.view("modal-clan-join", async ({ ack, body, view, client, logger }) => {
 
     const clan = await sql.begin(async (tx) => {
       const [clan] =
-        await tx`select * from clans where join_code = '${joinCode}'`;
+        await tx`select * from clans where join_code = ${joinCode};`;
+      if (!clan) return;
       await tx`update users set clan_id = ${clan.id} where slack_id = ${body.user.id};`;
 
       return clan;
     });
+
+    if (!clan) {
+      await ack({
+        response_action: "errors",
+        errors: {
+          "input-clan-join-code":
+            "Invalid code! You should assert_eq!(code.len(), 4) then retry.",
+        },
+      });
+      return;
+    }
+
+    const others =
+      await sql`select slack_id from users where clan_id = ${clan.id};`.then(
+        (res) =>
+          res.filter(
+            ({ slack_id }: { slack_id: string }) => slack_id !== body.user.id,
+          ),
+      );
 
     if (!process.env.EVENT_CHANNEL) {
       console.error("Env var EVENT_CHANNEL needs to be defined");
@@ -150,29 +170,21 @@ app.view("modal-clan-join", async ({ ack, body, view, client, logger }) => {
 
     await client.chat.postMessage({
       channel: process.env.EVENT_CHANNEL,
-      text: `:huggies-fast: @${body.user.id}> just joined *${clan.name}*! You've all got competition ~`,
+      text: `:huggies-fast: <@${body.user.id}> just joined *${clan.name}*${others.length > 0 ? `, teaming up with ${others.map(({ slack_id }: { slack_id: string }) => `<@${slack_id}>`).join(" & ")}` : "!"}`,
     });
     await client.chat.postMessage({
       channel: body.user.id,
       text: `Team "${clan.name}" joined successfully! Give people this join code: \`${clan.join_code}\`. Teams have to be between 2-6 people.`,
     });
+
     await ack();
   } catch (err: any) {
-    //     if (err.errno === "23505") {
-    //       await ack({
-    //         response_action: "errors",
-    //         errors: {
-    //           "input-clan-create-name": "This team name is already taken!",
-    //         },
-    //       });
-    //     } else {
-    //       await ack({
-    //         response_action: "errors",
-    //         errors: {
-    //           "input-clan-create-name": err.toString(),
-    //         },
-    //       });
-    //     }
+    await ack({
+      response_action: "errors",
+      errors: {
+        "input-clan-join-code": err.toString(),
+      },
+    });
   }
 });
 
