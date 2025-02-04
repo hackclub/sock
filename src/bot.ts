@@ -622,27 +622,40 @@ app.command("/sock", async ({ ack, body, client, logger }) => {
   }
 });
 
-const lastTrackedHbIds = new Map<string, number>(); // <users.slack_id, heartbeats.id>
-const empty = lastTrackedHbIds.size === 0;
-const minIdToSearchFor = empty ? 0 : Math.min(...lastTrackedHbIds.values());
-console.log({ minIdToSearchFor });
+const lastTrackedHbIds = new Map<string, [number, Date]>(); // <users.slack_id, [heartbeats.id, heartbeats.time]>
+const minIdToSearchFor =
+  lastTrackedHbIds.size === 0
+    ? 0
+    : Math.min(...Array.from(lastTrackedHbIds.values()).map(([num]) => num));
 
-const recentHeartbeats = await hackSql`
-  SELECT * FROM heartbeats
-  WHERE id > ${minIdToSearchFor}
-  ORDER BY time DESC
-  LIMIT 1000
-`;
-
+console.log("Fetching usres");
+const recentHeartbeats =
+  await hackSql`SELECT * FROM heartbeats WHERE id > ${minIdToSearchFor} ORDER BY time DESC LIMIT 1000;`;
+console.log("fetched usres");
 // if (recentHeartbeats.length === 0) {
 //   return; // No new heartbeats to process
 // }
 
 for (const hb of recentHeartbeats) {
   const slackId: string = hb.user_id.slice(-11);
-  if (!lastTrackedHbIds.get(slackId) || hb.id > lastTrackedHbIds.get(slackId)) {
-    lastTrackedHbIds.set(slackId, hb.id);
+  const currentEntry = lastTrackedHbIds.get(slackId);
+
+  if (!currentEntry || hb.id > currentEntry[0]) {
+    lastTrackedHbIds.set(slackId, [hb.id, hb.time]);
   }
+}
+
+// For each entry, normalise the time zone, to determine which summary day should be fetched.
+for (const [slackId, [lastHbId, lastHbTime]] of lastTrackedHbIds.entries()) {
+  // The wakatime `time`s are in UTC. Convert them to the user's static time zone, then decide the day.
+  const userInfo = await app.client.users.info({ user: slackId });
+  const [user] = await sql`select * from users where slack_id = ${slackId}`;
+  if (!user) continue;
+
+  const userTzOffsetMs = user.tz_offset * 1_000;
+  const hbLocalTime = new Date(lastHbTime.getTime() + userTzOffsetMs);
+
+  console.log({ user, hbLocalTime });
 }
 
 // TODO: i have the new hbs. i need to normalise their time zones as per zrl doc, query /summary, then create the participanthackatimedailysummary table and overwrite them.
