@@ -1,5 +1,6 @@
 import { App } from "@slack/bolt";
-import { sql } from "bun";
+import { SQL, sql } from "bun";
+import { Cron } from "croner";
 
 await sql`CREATE TABLE IF NOT EXISTS clans (
     id SERIAL PRIMARY KEY,
@@ -399,4 +400,33 @@ app.command("/sock", async ({ ack, body, client, logger }) => {
   } catch (error) {
     logger.error(error);
   }
+});
+
+const job = new Cron("* * * * *", async () => {
+  console.log("This will run every fifth second");
+
+  if (
+    !process.env.HACK_PG_URL ||
+    !process.env.HACK_PG_HOST ||
+    !process.env.HACK_PG_USER ||
+    !process.env.HACK_PG_PASS ||
+    !process.env.HACK_PG_TABL
+  ) {
+    console.error("Some HACK_PG_**** var is not present. Exiting.");
+    process.exit();
+  }
+
+  //@ts-expect-error The SQL constructor wants all the options, but I just want to go with the defaults for the omitted SQLOptions fields.
+  const hackSql = new SQL({
+    url: process.env.HACK_PG_URL!,
+    hostname: process.env.HACK_PG_HOST!,
+    username: process.env.HACK_PG_USER!,
+    password: process.env.HACK_PG_PASS!,
+    database: process.env.HACK_PG_TABL!,
+  });
+
+  const recentRows =
+    await hackSql`select * from heartbeats order by created_at desc limit 1000;`;
+
+  console.log(recentRows);
 });
