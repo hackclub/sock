@@ -130,7 +130,6 @@ app.view("modal-clan-create", async ({ ack, body, view, client, logger }) => {
 
 // React to submission
 app.view("modal-clan-join", async ({ ack, body, view, client, logger }) => {
-  console.log(body, view);
   try {
     const joinCode =
       view.state.values["input-clan-join-code"]?.["action-clan-join"]?.value;
