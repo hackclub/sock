@@ -2,6 +2,11 @@ import { App } from "@slack/bolt";
 import type { UsersInfoResponse } from "@slack/web-api";
 import { SQL, sql } from "bun";
 import { Cron } from "croner";
+import TimeAgo from "javascript-time-ago";
+import en from "javascript-time-ago/locale/en";
+
+TimeAgo.addDefaultLocale(en);
+const timeAgo = new TimeAgo("en-US");
 
 //#region DB setup
 await sql`CREATE TABLE IF NOT EXISTS clans (

@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@slack/bolt": "^4.2.0",
-    "croner": "^9.0.0"
+    "croner": "^9.0.0",
+    "javascript-time-ago": "^2.5.11"
   }
 }
