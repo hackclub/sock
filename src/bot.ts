@@ -82,6 +82,7 @@ app.action("action-clan-create", async ({ ack, body, client, logger }) => {
 
 // React to submission
 app.view("modal-clan-create", async ({ ack, body, view, client, logger }) => {
+  console.log(body, view);
   try {
     const newClanName =
       view.state.values["input-clan-create-name"]?.["action-clan-create"]
@@ -127,6 +128,105 @@ app.view("modal-clan-create", async ({ ack, body, view, client, logger }) => {
   }
 });
 
+// React to submission
+app.view("modal-clan-join", async ({ ack, body, view, client, logger }) => {
+  console.log(body, view);
+  try {
+    const joinCode =
+      view.state.values["input-clan-join-code"]?.["action-clan-join"]?.value;
+    console.log({ joinCode });
+
+    const clan = await sql.begin(async (tx) => {
+      const [clan] =
+        await tx`select * from clans where join_code = '${joinCode}'`;
+      await tx`update users set clan_id = ${clan.id} where slack_id = ${body.user.id};`;
+
+      return clan;
+    });
+
+    if (!process.env.EVENT_CHANNEL) {
+      console.error("Env var EVENT_CHANNEL needs to be defined");
+      process.exit();
+    }
+
+    await client.chat.postMessage({
+      channel: process.env.EVENT_CHANNEL,
+      text: `:huggies-fast: @${body.user.id}> just joined *${clan.name}*! You've all got competition ~`,
+    });
+    await client.chat.postMessage({
+      channel: body.user.id,
+      text: `Team "${clan.name}" joined successfully! Give people this join code: \`${clan.join_code}\`. Teams have to be between 2-6 people.`,
+    });
+    await ack();
+  } catch (err: any) {
+    //     if (err.errno === "23505") {
+    //       await ack({
+    //         response_action: "errors",
+    //         errors: {
+    //           "input-clan-create-name": "This team name is already taken!",
+    //         },
+    //       });
+    //     } else {
+    //       await ack({
+    //         response_action: "errors",
+    //         errors: {
+    //           "input-clan-create-name": err.toString(),
+    //         },
+    //       });
+    //     }
+  }
+});
+
+// Open modal
+app.action("action-clan-join", async ({ ack, body, client, logger }) => {
+  // Acknowledge the button request
+  await ack();
+
+  try {
+    if (body.type !== "block_actions" || !body.view) {
+      return;
+    }
+    // Call views.update with the built-in client
+    const result = await client.views.push({
+      trigger_id: body.trigger_id,
+      // View payload with updated blocks
+      view: {
+        type: "modal",
+        callback_id: "modal-clan-join",
+        title: {
+          type: "plain_text",
+          text: "Create a team",
+        },
+        blocks: [
+          {
+            type: "input",
+            block_id: "input-clan-join-code",
+            element: {
+              type: "plain_text_input",
+              action_id: "action-clan-join",
+            },
+            label: {
+              type: "plain_text",
+              text: "Enter your 4-character join code",
+              emoji: true,
+            },
+          },
+        ],
+        close: {
+          type: "plain_text",
+          text: "Back",
+        },
+        submit: {
+          type: "plain_text",
+          text: "Join",
+        },
+      },
+    });
+  } catch (error) {
+    logger.error(error);
+  }
+});
+
 // Listen for a slash command invocation
 app.command("/sock", async ({ ack, body, client, logger }) => {
   await ack();
@@ -141,7 +241,6 @@ app.command("/sock", async ({ ack, body, client, logger }) => {
     return;
   }
   const { profile, real_name, tz, tz_label, tz_offset } = userInfo.user;
-  console.log({ real_name, tz, tz_label, tz_offset });
 
   const [userRow] = await sql.begin(async (tx) => {
     await tx`insert into users (slack_id, username, real_name, first_name, last_name, email, tz, tz_label, tz_offset) values
@@ -149,6 +248,8 @@ app.command("/sock", async ({ ack, body, client, logger }) => {
       on conflict do nothing`;
     return await tx`select * from users where slack_id = ${body.user_id}`;
   });
+
+  console.log({ real_name, tz, tz_label, tz_offset, userRow });
 
   let rn = eventStartDate.getTime() - Date.now();
   let days = Math.floor(rn / (86400 * 1000));
@@ -227,7 +328,7 @@ app.command("/sock", async ({ ack, body, client, logger }) => {
                   text: "Join a team :handshake:",
                   emoji: true,
                 },
-                action_id: "modal-clan-join",
+                action_id: "action-clan-join",
               },
             ],
           },
