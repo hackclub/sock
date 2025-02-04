@@ -55,7 +55,7 @@ const hackSql = new SQL({
   username: process.env.HACK_PG_USER!,
   password: process.env.HACK_PG_PASS!,
   database: process.env.HACK_PG_TABL!,
-  max: 1,
+  max: 3,
 });
 //#endregion
 
