@@ -94,6 +94,19 @@ app.view("modal-clan-create", async ({ ack, body, view, client, logger }) => {
       await tx`update users set clan_id = ${newClan.id} where slack_id = ${body.user.id};`;
     });
 
+    if (!process.env.EVENT_CHANNEL) {
+      console.error("Env var EVENT_CHANNEL needs to be defined");
+      process.exit();
+    }
+
+    await client.chat.postMessage({
+      channel: process.env.EVENT_CHANNEL,
+      text: `⚔️ _A new challenger approaches!_\n<@${body.user.id}> just founded team *${newClanName}*! DM them for the join code.`,
+    });
+    await client.chat.postMessage({
+      channel: body.user.id,
+      text: `Team "${newClanName}" created successfully! Give people this join code: \`${joinCode}\`. Teams have to be between 2-6 people.`,
+    });
     await ack();
   } catch (err: any) {
     if (err.errno === "23505") {
