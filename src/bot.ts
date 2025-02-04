@@ -254,14 +254,14 @@ app.command("/sock", async ({ ack, body, client, logger }) => {
   }
   const { profile, real_name, tz, tz_label, tz_offset } = userInfo.user;
 
-  const [userRow] = await sql.begin(async (tx) => {
+  const [extendedUserRow] = await sql.begin(async (tx) => {
     await tx`insert into users (slack_id, username, real_name, first_name, last_name, email, tz, tz_label, tz_offset) values
       (${body.user_id}, ${body.user_name}, ${real_name}, ${profile.first_name}, ${profile.last_name}, ${profile.email}, ${tz}, ${tz_label}, ${tz_offset})
       on conflict do nothing`;
-    return await tx`select * from users where slack_id = ${body.user_id}`;
+    return await tx`select users.*, clans.name as clan_name, clans.join_code from users left join clans on users.clan_id = clans.id where users.slack_id = ${body.user_id}`;
   });
 
-  console.log({ real_name, tz, tz_label, tz_offset, userRow });
+  console.log({ real_name, tz, tz_label, tz_offset, extendedUserRow });
 
   let rn = eventStartDate.getTime() - Date.now();
   let days = Math.floor(rn / (86400 * 1000));
@@ -269,6 +269,38 @@ app.command("/sock", async ({ ack, body, client, logger }) => {
   let hours = Math.floor(rn / (60 * 60 * 1000));
   rn -= hours * (60 * 60 * 1000);
   let minutes = Math.floor(rn / (60 * 1000));
+
+  const teamInfoBlock = extendedUserRow.clan_name
+    ? {
+        type: "section",
+        text: {
+          type: "mrkdwn",
+          text: `✅ Be in a team; you're in *${extendedUserRow.clan_name}*. Others can join with \`${extendedUserRow.join_code}\``,
+        },
+      }
+    : {
+        type: "actions",
+        elements: [
+          {
+            type: "button",
+            text: {
+              type: "plain_text",
+              text: "Create a team :tada:",
+              emoji: true,
+            },
+            action_id: "action-clan-create",
+          },
+          {
+            type: "button",
+            text: {
+              type: "plain_text",
+              text: "Join a team :handshake:",
+              emoji: true,
+            },
+            action_id: "action-clan-join",
+          },
+        ],
+      };
 
   try {
     // Call views.open with the built-in client
@@ -304,15 +336,15 @@ app.command("/sock", async ({ ack, body, client, logger }) => {
             },
           },
           {
+            type: "divider",
+          },
+          {
             type: "header",
             text: {
               type: "plain_text",
-              text: `Starts in ${days} days, ${hours} hours, and ${minutes} minutes! :clock10:`,
+              text: `What do I need to do to get started?`,
               emoji: true,
             },
-          },
-          {
-            type: "divider",
           },
           {
             type: "section",
@@ -321,29 +353,7 @@ app.command("/sock", async ({ ack, body, client, logger }) => {
               text: "To partake in these shenanigans, you must;",
             },
           },
-          {
-            type: "actions",
-            elements: [
-              {
-                type: "button",
-                text: {
-                  type: "plain_text",
-                  text: "Create a team :tada:",
-                  emoji: true,
-                },
-                action_id: "action-clan-create",
-              },
-              {
-                type: "button",
-                text: {
-                  type: "plain_text",
-                  text: "Join a team :handshake:",
-                  emoji: true,
-                },
-                action_id: "action-clan-join",
-              },
-            ],
-          },
+          teamInfoBlock,
           {
             type: "section",
             text: {
@@ -387,10 +397,18 @@ app.command("/sock", async ({ ack, body, client, logger }) => {
             },
           },
           {
+            type: "header",
+            text: {
+              type: "plain_text",
+              text: `Starts in ${days} days, ${hours} hours, and ${minutes} minutes! :clock10:`,
+              emoji: true,
+            },
+          },
+          {
             type: "section",
             text: {
               type: "plain_text",
-              text: `${JSON.stringify(userRow)}`,
+              text: `${JSON.stringify(extendedUserRow)}`,
               emoji: true,
             },
           },
