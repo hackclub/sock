@@ -25,7 +25,8 @@ await sql`CREATE TABLE IF NOT EXISTS users (
     tz TEXT NOT NULL,
     tz_label TEXT NOT NULL,
     tz_offset INTEGER NOT NULL,
-    clan_id INTEGER REFERENCES clans(id)
+    clan_id INTEGER REFERENCES clans(id),
+    hakatime_password text DEFAULT upper(substr(md5(random()::text), 1, 32))
 )`;
 //#endregion
 
