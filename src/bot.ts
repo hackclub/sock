@@ -199,11 +199,11 @@ app.view("modal-clan-create", async ({ ack, body, view, client, logger }) => {
 
     await client.chat.postMessage({
       channel: process.env.EVENT_CHANNEL,
-      text: `⚔️ _A new challenger approaches!_\n<@${body.user.id}> just founded team *${newClanName}*! DM them for the join code.`,
+      text: `_Awe-filled sock noises_\n*Translation:* ⚔️ _A new challenger approaches!_\n<@${body.user.id}> just founded team *${newClanName}*! DM them for the join code.`,
     });
     await client.chat.postMessage({
       channel: body.user.id,
-      text: `Team "${newClanName}" created successfully! Give people this join code: \`${joinCode}\`. Teams have to be between 2-6 people.`,
+      text: `_Proud sock noises_\n*Translation:* Team "${newClanName}" created successfully! Give people this join code: \`${joinCode}\`. Teams have to be between 2-6 people.`,
     });
     await ack();
   } catch (err: any) {
@@ -267,11 +267,11 @@ app.view("modal-clan-join", async ({ ack, body, view, client, logger }) => {
 
     await client.chat.postMessage({
       channel: process.env.EVENT_CHANNEL,
-      text: `:huggies-fast: <@${body.user.id}> just joined *${clan.name}*${others.length > 0 ? `, teaming up with ${others.map(({ slack_id }: { slack_id: string }) => `<@${slack_id}>`).join(" & ")}` : "!"}`,
+      text: `_Happy sock noises_\n*Translation:* :huggies-fast: <@${body.user.id}> just joined *${clan.name}*${others.length > 0 ? `, teaming up with ${others.map(({ slack_id }: { slack_id: string }) => `<@${slack_id}>`).join(" & ")}` : "!"}`,
     });
     await client.chat.postMessage({
       channel: body.user.id,
-      text: `Team "${clan.name}" joined successfully! Give people this join code: \`${clan.join_code}\`. Teams have to be between 2-6 people.`,
+      text: `_Excited sock noises_\n*Translation:* Team "${clan.name}" joined successfully! Give people this join code: \`${clan.join_code}\`. Teams have to be between 2-6 people.`,
     });
 
     await ack();
