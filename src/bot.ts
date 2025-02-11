@@ -1,73 +1,27 @@
 import { App } from "@slack/bolt";
-import type { UsersInfoResponse } from "@slack/web-api";
-import { SQL, sql } from "bun";
-import { Cron } from "croner";
-import TimeAgo from "javascript-time-ago";
-import en from "javascript-time-ago/locale/en";
+import { sql } from "bun";
+import { createWakaUser, getLatestWakaData } from "./waka";
+import { getSecondsCoded, hackSql, setUpDb } from "./db";
+import { ago } from "./utils";
+import { registerJobs } from "./jobs";
 
-TimeAgo.addDefaultLocale(en);
-const timeAgo = new TimeAgo("en-US");
+await setUpDb();
 
-//#region DB setup
-await sql`CREATE TABLE IF NOT EXISTS clans (
-    id SERIAL PRIMARY KEY,
-    name TEXT NOT NULL UNIQUE,
-    join_code TEXT NOT NULL
-)`;
-
-await sql`CREATE TABLE IF NOT EXISTS users (
-    slack_id TEXT PRIMARY KEY,
-    username TEXT NOT NULL,
-    real_name TEXT NOT NULL,
-    first_name TEXT NOT NULL,
-    last_name TEXT NOT NULL,
-    email TEXT NOT NULL,
-    tz TEXT NOT NULL,
-    tz_label TEXT NOT NULL,
-    tz_offset INTEGER NOT NULL,
-    clan_id INTEGER REFERENCES clans(id),
-    hakatime_password text DEFAULT upper(substr(md5(random()::text), 1, 32))
-)`;
-
-// Allows bot sharding
-await sql`CREATE TABLE IF NOT EXISTS users_last_tracked_hb (
-    user_id TEXT NOT NULL PRIMARY KEY REFERENCES users(slack_id),
-    hb_id BIGINT NOT NULL UNIQUE
-)`;
-//#endregion
-
-//#region Hackatime PG connection
-if (
-  !process.env.HACK_PG_URL ||
-  !process.env.HACK_PG_HOST ||
-  !process.env.HACK_PG_USER ||
-  !process.env.HACK_PG_PASS ||
-  !process.env.HACK_PG_TABL
-) {
-  console.error("Some HACK_PG_**** var is not present. Exiting.");
+if (!process.env.EVENT_CHANNEL) {
+  console.error("Env var EVENT_CHANNEL needs to be defined");
   process.exit();
 }
 
-//@ts-expect-error The SQL constructor wants all the options, but I just want to go with the defaults for the omitted SQLOptions fields.
-const hackSql = new SQL({
-  url: process.env.HACK_PG_URL!,
-  hostname: process.env.HACK_PG_HOST!,
-  username: process.env.HACK_PG_USER!,
-  password: process.env.HACK_PG_PASS!,
-  database: process.env.HACK_PG_TABL!,
-  max: 3,
-});
-//#endregion
-
-const app = new App({
+export const app = new App({
   token: process.env.SLACK_BOT_TOKEN,
   signingSecret: process.env.SLACK_APP_SIGNING_SECRET,
 });
 
 await app.start();
 app.logger.info("Bolt app is running");
+registerJobs();
 
-const eventStartDate = new Date("2025-02-05T00:00:00Z");
+const eventStartDate = new Date("2025-02-10");
 
 app.action("action-waka-setup-unix", async ({ ack, body, client, logger }) => {
   const userInfo = await app.client.users.info({ user: body.user.id });
