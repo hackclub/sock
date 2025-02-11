@@ -252,6 +252,14 @@ app.view("modal-clan-join", async ({ ack, body, view, client, logger }) => {
         },
       });
       return;
+    } else if (clan === 1) {
+      await ack({
+        response_action: "errors",
+        errors: {
+          "input-clan-join-code": "This team is already at 6 members!",
+        },
+      });
+      return;
     }
 
     const others =
