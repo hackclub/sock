@@ -355,7 +355,6 @@ app.action("action-clan-leave", async ({ ack, body, client, logger }) => {
     }
 
     await sql`update users set clan_id = null where slack_id = ${body.user.id}`;
-    await client.views.update;
   } catch (error) {
     logger.error(error);
   }
@@ -509,7 +508,7 @@ app.command("/sock", async ({ ack, body, client, logger }) => {
                 text: `Leave team ${extendedUserRow.clan_name} :X:`,
                 emoji: true,
               },
-              action_id: "action-an-leave",
+              action_id: "action-clan-leave",
             },
           ],
         },
