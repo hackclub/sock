@@ -281,7 +281,7 @@ app.view("modal-clan-join", async ({ ack, body, view, client, logger }) => {
     });
     await client.chat.postMessage({
       channel: body.user.id,
-      text: `_Excited sock noises_\n*Translation:* Team "${clan.name}" joined successfully! Give people this join code: \`${clan.join_code}\`. Teams have to be between 2-6 people.`,
+      text: `_Excited sock noises_\n*Translation:* Team "${clan.name}" joined successfully! Give people this join code: \`${clan.join_code}\`. Team sizes must be <= 6 people.`,
     });
 
     await ack();
