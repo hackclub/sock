@@ -648,15 +648,8 @@ app.command("/sock", async ({ ack, body, client, logger }) => {
               emoji: true,
             },
           },
+          ...conditionalLeaveTeamButton,
           ...hakatimeInstallRefresher,
-          {
-            type: "section",
-            text: {
-              type: "plain_text",
-              text: `${JSON.stringify(extendedUserRow)}`,
-              emoji: true,
-            },
-          },
         ],
       },
     });
