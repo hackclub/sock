@@ -487,13 +487,32 @@ app.command("/sock", async ({ ack, body, client, logger }) => {
         ],
       };
 
+  const conditionalLeaveTeamButton = extendedUserRow.clan_id
+    ? [
+        {
+          type: "actions",
+          elements: [
+            {
+              type: "button",
+              text: {
+                type: "plain_text",
+                text: `Leave team ${extendedUserRow.clan_name} :X:`,
+                emoji: true,
+              },
+              action_id: "action-an-leave",
+            },
+          ],
+        },
+      ]
+    : [];
+
   const hakatimeInfoBlock = latestWakaData
     ? [
         {
           type: "section",
           text: {
             type: "mrkdwn",
-            text: `✅ Set up Hakatime; ${timeAgo.format(latestWakaData?.time)} you edited your ${latestWakaData?.language} project _${latestWakaData?.project}_ in ${latestWakaData?.editor}`,
+            text: `✅ Set up Hakatime; ${ago(latestWakaData?.time)} you edited your ${latestWakaData?.language} project _${latestWakaData?.project}_ in ${latestWakaData?.editor}`,
           },
         },
       ]
