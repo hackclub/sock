@@ -335,6 +335,82 @@ app.action("action-clan-join", async ({ ack, body, client, logger }) => {
   }
 });
 
+app.action("action-clan-leave", async ({ ack, body, client, logger }) => {
+  // Acknowledge the button request
+  await ack();
+
+  try {
+    if (body.type !== "block_actions" || !body.view) {
+      return;
+    }
+
+    await sql`update users set clan_id = null where slack_id = ${body.user.id}`;
+    await client.views.update;
+  } catch (error) {
+    logger.error(error);
+  }
+});
+
+app.command("/sock-board", async ({ ack, body, client, logger }) => {
+  const intros = [
+    "Here ye, here ye!",
+    "Everysocky, gather around!",
+    "Hold onto your socks!",
+  ];
+  const intro = intros[Math.floor(Math.random() * intros.length)];
+
+  const leaderboardRows = await sql`SELECT
+        c.id AS clan_id,
+        c.name AS clan_name,
+        COALESCE(SUM((project->>'total')::int), 0) AS total_seconds_coded
+      FROM
+        clans c
+      LEFT JOIN
+        users u ON c.id = u.clan_id
+      LEFT JOIN
+        user_hakatime_daily_summary uhds ON u.slack_id = uhds.user_id
+      LEFT JOIN
+        LATERAL jsonb_array_elements(uhds.summary->'projects') AS project ON true
+      WHERE
+        uhds.date >= ${eventStartDate.toISOString()}
+      GROUP BY
+        c.id, c.name
+      ORDER BY
+        total_seconds_coded desc;
+`;
+
+  const leaderboard = leaderboardRows.map(
+    (
+      {
+        clan_name,
+        total_seconds_coded,
+      }: {
+        clan_name: string;
+        total_seconds_coded: number;
+      },
+      idx: number,
+    ) => {
+      let medal =
+        idx === 0
+          ? ":first_place_medal:"
+          : idx === 1
+            ? ":second_place_medal:"
+            : idx === 2
+              ? ":third_place_medal:"
+              : "";
+
+      return `${medal} ${clan_name}: ${(total_seconds_coded / 60 / 60).toFixed(1)} hours`;
+    },
+  );
+
+  await client.chat.postMessage({
+    channel: process.env.EVENT_CHANNEL!,
+    text: `_Fanfare-y sock noises_\n*Translation:* ${intro} The <#${process.env.EVENT_CHANNEL}> standings are as follows:\n${leaderboard.join("\n")}`,
+  });
+
+  await ack();
+});
+
 // Listen for a slash command invocation
 app.command("/sock", async ({ ack, body, client, logger }) => {
   await ack();
