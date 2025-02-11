@@ -552,13 +552,6 @@ app.command("/sock", async ({ ack, body, client, logger }) => {
   const hakatimeInstallRefresher = latestWakaData
     ? [
         {
-          type: "section",
-          text: {
-            type: "mrkdwn",
-            text: "_...and_ configure <https://github.com/hackclub/hackatime|Hakatime> so we can track how long you've coded.\n*If you've configured it previously, you'll need to do it again for this.*",
-          },
-        },
-        {
           type: "actions",
           elements: [
             {
