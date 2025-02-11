@@ -36,7 +36,6 @@ app.action("action-waka-setup-unix", async ({ ack, body, client, logger }) => {
     // Call views.update with the built-in client
     const result = await client.views.push({
       trigger_id: body.trigger_id,
-      // View payload with updated blocks
       view: {
         type: "modal",
         callback_id: "modal-waka-setup-unix",
@@ -58,6 +57,7 @@ If you don't know what this means, that's okay! Follow these steps;
 1. Press ⌘ (command) and spacebar together, then search for "Terminal"
 2. Paste the following text in: \`echo "[settings]\\napi_url = https://waka.hackclub.com/api\\napi_key = ${apiKeyResponse.api_key}" > ~/.wakatime.cfg\`
 3. Press ⏎ return!
+4. Run \`/sock\` again
               `,
             },
           },
@@ -110,6 +110,7 @@ If you don't know what this means, that's okay! Follow these steps;
 1. Press the Windows key, then search for "Powershell"
 2. Paste the following text in: \`cmd /c "echo [settings]>%USERPROFILE%\.wakatime.cfg && echo api_url = https://waka.hackclub.com/api>>%USERPROFILE%\.wakatime.cfg && echo api_key = ${apiKeyResponse.api_key}>>%USERPROFILE%\.wakatime.cfg"\`
 3. Press ⏎ return!
+4. Run \`/sock\` again
               `,
               },
             },
