@@ -687,72 +687,9 @@ app.command("/sock", async ({ ack, body, client, logger }) => {
 //   console.log({ latestPerUser });
 // });
 
-async function createWakaUser(userInfo: UsersInfoResponse) {
-  if (!process.env.WAKA_USERNAME_PREFIX) {
-    console.error("Env var WAKA_USERNAME_PREFIX not set. Exiting.");
-    process.exit();
-  }
-  if (!process.env.WAKA_API_KEY) {
-    console.error("Env var WAKA_API_KEY not set. Exiting.");
-    process.exit();
-  }
-
-  if (
-    !userInfo.ok ||
-    !userInfo.user ||
-    !userInfo.user.id ||
-    !userInfo.user.name
-  ) {
-    throw new Error("Invalid user info");
-  }
-
-  const [userRow] =
-    await sql`select hakatime_password from users where slack_id = ${userInfo.user.id};`;
-
-  console.log({ userInfo, userRow });
-
-  const payload = {
-    location: userInfo.user.tz ?? "Factory",
-    email: userInfo.user.profile?.email ?? "",
-    password: userRow.hakatime_password,
-    password_repeat: userRow.hakatime_password,
-    name: userInfo.user.name,
-    username: "test5" + process.env.WAKA_USERNAME_PREFIX + userInfo.user.id,
-  };
-
-  return await fetch("https://waka.hackclub.com/signup", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${process.env.WAKA_API_KEY}`,
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: new URLSearchParams(payload),
-  });
-}
-
 /// Body is passed for safety, so you can only get the current user's API key.
 // async function getWakaApiKey(body: SlashCommand) {
 //   const [user] =
 //     await hackSql`select * from users where id LIKE '%sockathon-' || ${body.user_id};`;
 //   return user.api_key;
 // }
-
-async function getLatestWakaData(slackId: string): Promise<{
-  project: string;
-  language: string;
-  editor?: string;
-  time: any;
-} | null> {
-  console.log({ slackId });
-  const [hb] =
-    await hackSql`select * from heartbeats where user_id = 'test5sockathon-' || ${slackId} order by time desc limit 1;`;
-
-  if (!hb) return null;
-
-  return {
-    project: hb.project,
-    language: hb.language,
-    editor: hb.editor,
-    time: hb.time,
-  };
-}
