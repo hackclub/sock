@@ -230,12 +230,14 @@ app.view("modal-clan-join", async ({ ack, body, view, client, logger }) => {
   try {
     const joinCode =
       view.state.values["input-clan-join-code"]?.["action-clan-join"]?.value;
-    console.log({ joinCode });
 
     const clan = await sql.begin(async (tx) => {
       const [clan] =
-        await tx`select * from clans where join_code = ${joinCode};`;
-      if (!clan) return;
+        await tx`select clans.*, count(users) from clans join users on clans.id = users.clan_id where join_code = ${joinCode} group by clans.id;`;
+
+      if (!clan) return 0;
+      if (clan.count >= 6) return 1;
+
       await tx`update users set clan_id = ${clan.id} where slack_id = ${body.user.id};`;
 
       return clan;
