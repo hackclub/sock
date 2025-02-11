@@ -203,7 +203,7 @@ app.view("modal-clan-create", async ({ ack, body, view, client, logger }) => {
     });
     await client.chat.postMessage({
       channel: body.user.id,
-      text: `_Proud sock noises_\n*Translation:* Team "${newClanName}" created successfully! Give people this join code: \`${joinCode}\`. Teams have to be between 2-6 people.`,
+      text: `_Proud sock noises_\n*Translation:* Team "${newClanName}" created successfully! Give people this join code: \`${joinCode}\`. Team sizes must be <= 6 people.`,
     });
     await ack();
   } catch (err: any) {
