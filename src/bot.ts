@@ -15,6 +15,7 @@ if (!process.env.EVENT_CHANNEL) {
 export const app = new App({
   token: process.env.SLACK_BOT_TOKEN,
   signingSecret: process.env.SLACK_APP_SIGNING_SECRET,
+  processBeforeResponse: true,
 });
 
 await app.start();
