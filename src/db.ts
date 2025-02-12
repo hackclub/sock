@@ -60,3 +60,13 @@ export async function getSecondsCoded(slackId: string, date: Date) {
 
   return total_seconds_today;
 }
+
+export async function getSecondsCodedTotal(slackId: string) {
+  const [{ total_seconds_today }] =
+    await sql`SELECT SUM((project->>'total')::int) AS total_seconds_today
+                FROM user_hakatime_daily_summary,
+                LATERAL jsonb_array_elements(summary->'projects') AS project
+                WHERE user_id = ${slackId} AND date >= ${eventStartDate.toISOString()};`;
+
+  return total_seconds_today;
+}
