@@ -52,13 +52,11 @@ export async function setUpDb() {
 }
 
 export async function getSecondsCoded(slackId: string, date: Date) {
-  const dateOnly = date.toISOString().split("T")[0];
-
   const [{ total_seconds_today }] =
     await sql`SELECT SUM((project->>'total')::int) AS total_seconds_today
                 FROM user_hakatime_daily_summary,
                 LATERAL jsonb_array_elements(summary->'projects') AS project
-                WHERE user_id = ${slackId} AND date = ${dateOnly};`;
+                WHERE user_id = ${slackId} AND date = ${date.toISOString()};`;
 
   return total_seconds_today;
 }
