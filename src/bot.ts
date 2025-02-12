@@ -179,7 +179,6 @@ app.action("action-clan-create", async ({ ack, body, client, logger }) => {
 
 // React to submission
 app.view("modal-clan-create", async ({ ack, body, view, client, logger }) => {
-  console.log(body, view);
   try {
     const newClanName =
       view.state.values["input-clan-create-name"]?.["action-clan-create"]
@@ -447,15 +446,6 @@ app.command("/sock", async ({ ack, body, client, logger }) => {
     .catch((err) => logger.error(err));
 
   const latestWakaData = await getLatestWakaData(body.user_id);
-
-  console.log({
-    real_name,
-    tz,
-    tz_label,
-    tz_offset,
-    extendedUserRow,
-    latestWakaData,
-  });
 
   let rn = eventStartDate.getTime() - Date.now();
   let days = Math.floor(rn / (86400 * 1000));

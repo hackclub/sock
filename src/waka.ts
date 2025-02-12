@@ -20,8 +20,6 @@ export async function createWakaUser(userInfo: UsersInfoResponse) {
   const [userRow] =
     await sql`select hakatime_password from users where slack_id = ${userInfo.user.id};`;
 
-  console.log({ userInfo, userRow });
-
   const payload = {
     location: userInfo.user.tz ?? "Factory",
     email: "malted@hackclub.com", //userInfo.user.profile?.email ?? "",
@@ -47,7 +45,6 @@ export async function getLatestWakaData(slackId: string): Promise<{
   editor?: string;
   time: any;
 } | null> {
-  console.log({ slackId });
   const [hb] =
     await hackSql`select * from heartbeats where user_id = ${slackId} order by time desc limit 1;`;
 
