@@ -24,6 +24,7 @@ registerJobs();
 export const eventStartDate = new Date("2025-02-10");
 
 app.action("action-waka-setup-unix", async ({ ack, body, client, logger }) => {
+  console.log("Setup unix clicked!", body, client);
   const userInfo = await app.client.users.info({ user: body.user.id });
   const apiKeyResponse = await createWakaUser(userInfo).then((d) => d.json());
 
