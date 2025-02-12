@@ -12,7 +12,6 @@ if (
   process.exit();
 }
 
-//@ts-expect-error The SQL constructor wants all the options, but I just want to go with the defaults for the omitted SQLOptions fields.
 export const hackSql = new SQL({
   url: process.env.HACK_PG_URL!,
   hostname: process.env.HACK_PG_HOST!,
