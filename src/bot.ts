@@ -420,6 +420,47 @@ app.command("/sock-board", async ({ ack, body, client, logger }) => {
   await ack();
 });
 
+app.command("/sock-team", async ({ ack, body, client, logger }) => {
+  await ack();
+  const teamMembers =
+    await sql`select u2.slack_id from users u1 join users u2 on u1.clan_id = u2.clan_id where u1.slack_id = ${body.user_id};`;
+
+  const [clan] =
+    await sql`select c.name from users u join clans c on u.clan_id = c.id where u.slack_id = ${body.user_id};`;
+
+  const stats = await Promise.all(
+    teamMembers.map(async ({ slack_id }: { slack_id: string }) => {
+      return [
+        slack_id,
+        (await getSecondsCoded(slack_id, new Date())) ?? 0,
+        (await getSecondsCodedTotal(slack_id)) ?? 0,
+      ];
+    }),
+  );
+
+  stats.sort((a, b) => b[2] - a[2]);
+
+  const board = stats
+    .map(([slackId, coded, totalCoded], idx) => {
+      let medal =
+        idx === 0
+          ? ":first_place_medal: "
+          : idx === 1
+            ? ":second_place_medal: "
+            : idx === 2
+              ? ":third_place_medal: "
+              : "";
+
+      return `${medal}<@${slackId}> coded ${(totalCoded / 3600).toFixed(1)} hours total (${(coded / 60).toFixed(1)} mins today)`;
+    })
+    .join("\n");
+
+  await client.chat.postMessage({
+    channel: body.channel_id,
+    text: `<#${process.env.EVENT_CHANNEL!}> standings for team *${clan.name}*:\n${board}`,
+  });
+});
+
 // Listen for a slash command invocation
 app.command("/sock", async ({ ack, body, client, logger }) => {
   await ack();
