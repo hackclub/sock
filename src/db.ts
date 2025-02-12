@@ -24,8 +24,9 @@ export const hackSql = new SQL({
 export async function setUpDb() {
   await sql`CREATE TABLE IF NOT EXISTS clans (
       id SERIAL PRIMARY KEY,
-      name TEXT NOT NULL UNIQUE,
-      join_code TEXT NOT NULL
+      name VARCHAR(50) NOT NULL UNIQUE,
+      join_code TEXT NOT NULL,
+      failed_at DATE
   )`;
 
   await sql`CREATE TABLE IF NOT EXISTS users (
