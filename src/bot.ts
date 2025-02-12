@@ -1,7 +1,7 @@
 import { App } from "@slack/bolt";
 import { sql } from "bun";
 import { createWakaUser, getLatestWakaData } from "./waka";
-import { getSecondsCoded, hackSql, setUpDb } from "./db";
+import { getSecondsCoded, getSecondsCodedTotal, hackSql, setUpDb } from "./db";
 import { ago } from "./utils";
 import { registerJobs } from "./jobs";
 
