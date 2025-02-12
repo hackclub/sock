@@ -1,4 +1,5 @@
 import { SQL, sql } from "bun";
+import { eventStartDate } from "./bot";
 
 if (
   !process.env.HACK_PG_URL ||
