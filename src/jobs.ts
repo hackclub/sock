@@ -116,83 +116,82 @@ export function registerJobs() {
       }
     }
 
-    // Check for time warnings @ 6pm
-  });
+    sql`select slack_id, tz_label, tz_offset, clans.id as clan_id, clans.failed_at as clan_failed_at from users join clans on users.clan_id = clans.id;`.then(
+      (users) => {
+        users.forEach(
+          async ({
+            slack_id,
+            tz_label,
+            tz_offset,
+            clan_id,
+            clan_failed_at,
+          }: {
+            slack_id: string;
+            tz_label: string;
+            tz_offset: number;
+            clan_id: number;
+            clan_failed_at: string;
+          }) => {
+            console.log({ clan_failed_at });
+            console.log("Processing user", slack_id);
+            if (!clan_id) return;
 
-  sql`select slack_id, tz_label, tz_offset, clans.id as clan_id, clans.failed_at as clan_failed_at from users join clans on users.clan_id = clans.id;`.then(
-    (users) => {
-      users.forEach(
-        async ({
-          slack_id,
-          tz_label,
-          tz_offset,
-          clan_id,
-          clan_failed_at,
-        }: {
-          slack_id: string;
-          tz_label: string;
-          tz_offset: number;
-          clan_id: number;
-          clan_failed_at: string;
-        }) => {
-          console.log({ clan_failed_at });
-          console.log("Processing user", slack_id);
-          if (!clan_id) return;
+            // Get the current UTC time in milliseconds
+            const nowUTC = Date.now();
 
-          // Get the current UTC time in milliseconds
-          const nowUTC = Date.now();
+            // Adjust the UTC time by the user's time zone offset to get the user's local time
+            const userTime = new Date(nowUTC + tz_offset * 1000);
 
-          // Adjust the UTC time by the user's time zone offset to get the user's local time
-          const userTime = new Date(nowUTC + tz_offset * 1000);
+            const minsCodedToday =
+              (await getSecondsCoded(slack_id, userTime)) / 60;
 
-          const minsCodedToday =
-            (await getSecondsCoded(slack_id, userTime)) / 60;
-
-          if (
-            userTime.getUTCHours() === 18 &&
-            userTime.getUTCMinutes() === 0 &&
-            minsCodedToday < 15 &&
-            !clan_failed_at
-          ) {
-            // Send a reminder
-            await app.client.chat.postMessage({
-              channel: slack_id,
-              text: `_Worried sock noises_\n*Translation:* It's 6pm ${tz_label.toLowerCase()}, and you haven't coded your 15 minutes yet today! You've got until midnight tonight. Don't be a smelly sock and let your team down!`,
-            });
-          } else if (
-            userTime.getUTCHours() === 19 &&
-            userTime.getUTCMinutes() === 24 &&
-            minsCodedToday < 15 &&
-            !clan_failed_at
-          ) {
-            console.log(`${slack_id} lost, failing them...`);
-            // Lost the day
-            await sql`update clans set failed_at = ${userTime.toISOString()} where id = ${clan_id}`;
-
-            const clanSlackIds =
-              await sql`select slack_id from users where clan_id = ${clan_id}`.then(
-                (ids) =>
-                  ids.map(({ slack_id }: { slack_id: string }) => slack_id),
-              );
-
-            const [clan] = await sql`select * from clans where id = ${clan_id}`;
-
-            app.logger.info(`${clan.name} is out!`);
-
-            clanSlackIds.forEach(async (id: string) => {
+            if (
+              userTime.getUTCHours() === 18 &&
+              userTime.getUTCMinutes() === 0 &&
+              minsCodedToday < 15 &&
+              !clan_failed_at
+            ) {
+              // Send a reminder
               await app.client.chat.postMessage({
-                channel: id,
-                text: `_Sad sock noises, sock tail between sock legs (?)_\n*Translation:* Sorry to have to tell you this, but *${clan.name}* is out of Sockathon, because ${slack_id === id ? "you" : `<@${slack_id}>`} didn't do their 15 minutes of coding today. Better luck next time! :tux-dance:`,
+                channel: slack_id,
+                text: `_Worried sock noises_\n*Translation:* It's 6pm ${tz_label.toLowerCase()}, and you haven't coded your 15 minutes yet today! You've got until midnight tonight. Don't be a smelly sock and let your team down!`,
               });
-            });
+            } else if (
+              userTime.getUTCHours() === 19 &&
+              userTime.getUTCMinutes() === 24 &&
+              minsCodedToday < 15 &&
+              !clan_failed_at
+            ) {
+              console.log(`${slack_id} lost, failing them...`);
+              // Lost the day
+              await sql`update clans set failed_at = ${userTime.toISOString()} where id = ${clan_id}`;
 
-            await app.client.chat.postMessage({
-              channel: process.env.EVENT_CHANNEL!,
-              text: `_Crying sock noises_\n*Translation:* And just like that folks, *${clan.name}* is out! Give it up for ${clanSlackIds.map((id: string) => `<@${id}>`).join(" & ")}! :clapping:`,
-            });
-          }
-        },
-      );
-    },
-  );
+              const clanSlackIds =
+                await sql`select slack_id from users where clan_id = ${clan_id}`.then(
+                  (ids) =>
+                    ids.map(({ slack_id }: { slack_id: string }) => slack_id),
+                );
+
+              const [clan] =
+                await sql`select * from clans where id = ${clan_id}`;
+
+              app.logger.info(`${clan.name} is out!`);
+
+              clanSlackIds.forEach(async (id: string) => {
+                await app.client.chat.postMessage({
+                  channel: id,
+                  text: `_Sad sock noises, sock tail between sock legs (?)_\n*Translation:* Sorry to have to tell you this, but *${clan.name}* is out of Sockathon, because ${slack_id === id ? "you" : `<@${slack_id}>`} didn't do their 15 minutes of coding today. Better luck next time! :tux-dance:`,
+                });
+              });
+
+              await app.client.chat.postMessage({
+                channel: process.env.EVENT_CHANNEL!,
+                text: `_Crying sock noises_\n*Translation:* And just like that folks, *${clan.name}* is out! Give it up for ${clanSlackIds.map((id: string) => `<@${id}>`).join(" & ")}! :clapping:`,
+              });
+            }
+          },
+        );
+      },
+    );
+  });
 }
