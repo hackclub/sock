@@ -381,7 +381,7 @@ app.command("/sock-board", async ({ ack, body, client, logger }) => {
       LEFT JOIN
         LATERAL jsonb_array_elements(uhds.summary->'projects') AS project ON true
       WHERE
-        uhds.date >= ${eventStartDate.toISOString()}
+        uhds.date >= ${eventStartDate.toISOString()} AND c.failed_at IS NULL
       GROUP BY
         c.id, c.name
       ORDER BY
