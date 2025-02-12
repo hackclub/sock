@@ -457,7 +457,7 @@ app.command("/sock-team", async ({ ack, body, client, logger }) => {
 
   await client.chat.postMessage({
     channel: body.channel_id,
-    text: `<#${process.env.EVENT_CHANNEL!}> standings for team *${clan.name}*:\n${board}`,
+    text: `<#${process.env.EVENT_CHANNEL!}> standings for team *${clan.name}*:\n${board}\n\n> <@${body.user_id}> ran \`/sock-team\``,
   });
 });
 
