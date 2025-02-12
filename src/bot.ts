@@ -345,6 +345,7 @@ app.action("action-clan-join", async ({ ack, body, client, logger }) => {
 });
 
 app.action("action-clan-leave", async ({ ack, body, client, logger }) => {
+  console.log({ body, client });
   // Acknowledge the button request
   await ack();
 
