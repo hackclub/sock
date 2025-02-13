@@ -706,7 +706,7 @@ app.command("/sock", async ({ ack, body, client, logger }) => {
             type: "header",
             text: {
               type: "plain_text",
-              text: `Starts in ${days} days, ${hours} hours, and ${minutes} minutes! :clock10:`,
+              text: `Starts in ${days} days, ${hours} hours, and ${minutes} minutes in <#${process.env.EVENT_CHANNEL!}>!`,
               emoji: true,
             },
           },
