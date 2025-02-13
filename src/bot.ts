@@ -541,7 +541,7 @@ app.command("/sock-team", async ({ ack, body, client, logger }) => {
 });
 
 // Listen for a slash command invocation
-app.command("/sockdev", async ({ ack, body, client, logger }) => {
+app.command("/sock", async ({ ack, body, client, logger }) => {
   track("/sock", body.user_id);
   await ack();
 
