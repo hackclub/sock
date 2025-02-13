@@ -656,20 +656,21 @@ app.command("/sock", async ({ ack, body, client, logger }) => {
           {
             type: "section",
             text: {
-              type: "plain_text",
-              text: "Code for 10 days straight on a group project, get Hack Club socks! :socks:",
-              emoji: true,
+              type: "mrkdwn",
+              text: `🧑‍💻 Code for 10 days straight on a *group project*;\n\n🫵 Get Hack Club socks!\n\n\n0. Join <#${process.env.EVENT_CHANNEL}>\n\n1. Form a team. Up to 6 people.`,
             },
-          },
-          {
-            type: "divider",
+            accessory: {
+              type: "image",
+              image_url:
+                "https://cdn.hackclubber.dev/slackcdn/2d084df51fb8808433741b78a9949577.png",
+              alt_text: "A pair of Hack Club socks",
+            },
           },
           {
             type: "section",
             text: {
-              type: "plain_text",
-              text: "1. Form a team. You know, your friends. Which you have. :huggies-fast:\n\n2. Everyone must code for over 15 mins per day, or you're all out! :eyes_shaking:\n\n3. Team with the most hours after 10 days wins ('/sock prizes' btw) :party-parrot:",
-              emoji: true,
+              type: "mrkdwn",
+              text: `2. Everyone must code for at least 15 mins per day, or you're all out.\n\n3. The team with the most hours after 10 days wins!\n\n\n‼️ Remember, you've all got to be working on the same project, committing to the repo every day! <https://forms.hackclub.com/t/fWcHAW3iE3us|At the end, you'll submit here.>`,
             },
           },
           {
@@ -706,7 +707,7 @@ app.command("/sock", async ({ ack, body, client, logger }) => {
             type: "header",
             text: {
               type: "plain_text",
-              text: `Starts in ${days} days, ${hours} hours, and ${minutes} minutes in <#${process.env.EVENT_CHANNEL!}>!`,
+              text: `Starts in ${days} days, ${hours} hours, and ${minutes} minutes :clock10:!`,
               emoji: true,
             },
           },
