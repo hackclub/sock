@@ -1,5 +1,5 @@
 import { SQL, sql } from "bun";
-import { eventStartDate } from "./bot";
+import { app, eventStartDate } from "./bot";
 
 if (
   !process.env.HACK_PG_URL ||
@@ -20,6 +20,11 @@ export const hackSql = new SQL({
   database: process.env.HACK_PG_TABL!,
   max: 3,
 });
+
+if (!process.env.STATS_PG_URL) {
+  console.error("STATS_PG_URL env var is not present. Exiting.");
+  process.exit();
+}
 
 export async function setUpDb() {
   await sql`CREATE TABLE IF NOT EXISTS clans (
@@ -70,3 +75,15 @@ export async function getSecondsCodedTotal(slackId: string) {
 
   return total_seconds_today;
 }
+
+//#region Telemetry
+export const statsSql = new SQL(process.env.STATS_PG_URL);
+export function track(evt: string, sid?: string) {
+  try {
+    const env = process.env.NODE_ENV ?? "development";
+    statsSql`insert into events (env, prj, evt, sid) values (${env}, 'sockathon', ${evt}, ${sid});`;
+  } catch (e) {
+    app.logger.error("Stats tracking err:", e);
+  }
+}
+//#endregion

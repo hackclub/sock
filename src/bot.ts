@@ -1,7 +1,14 @@
 import { App } from "@slack/bolt";
 import { sql } from "bun";
 import { createWakaUser, getLatestWakaData } from "./waka";
-import { getSecondsCoded, getSecondsCodedTotal, hackSql, setUpDb } from "./db";
+import {
+  getSecondsCoded,
+  getSecondsCodedTotal,
+  hackSql,
+  setUpDb,
+  statsSql,
+  track,
+} from "./db";
 import { ago } from "./utils";
 import { registerJobs } from "./jobs";
 
@@ -24,7 +31,8 @@ registerJobs();
 export const eventStartDate = new Date("2025-02-10");
 
 app.action("action-waka-setup-unix", async ({ ack, body, client, logger }) => {
-  console.log("Setup unix clicked!", body, client);
+  track("action-waka-setup-unix", body.user.id);
+
   const userInfo = await app.client.users.info({ user: body.user.id });
   const apiKeyResponse = await createWakaUser(userInfo).then((d) => d.json());
 
@@ -77,6 +85,8 @@ If you don't know what this means, that's okay! Follow these steps;
 app.action(
   "action-waka-setup-windows",
   async ({ ack, body, client, logger }) => {
+    track("action-waka-setup-windows", body.user.id);
+
     const userInfo = await app.client.users.info({ user: body.user.id });
     const apiKeyResponse = await createWakaUser(userInfo).then((d) => d.json());
 
@@ -130,7 +140,7 @@ If you don't know what this means, that's okay! Follow these steps;
 
 // Open modal
 app.action("action-clan-create", async ({ ack, body, client, logger }) => {
-  // Acknowledge the button request
+  track("action-clan-create", body.user.id);
   await ack();
 
   try {
@@ -180,6 +190,8 @@ app.action("action-clan-create", async ({ ack, body, client, logger }) => {
 
 // React to submission
 app.view("modal-clan-create", async ({ ack, body, view, client, logger }) => {
+  track("modal-clan-create", body.user.id);
+
   try {
     const newClanName =
       view.state.values["input-clan-create-name"]?.["action-clan-create"]
@@ -227,6 +239,8 @@ app.view("modal-clan-create", async ({ ack, body, view, client, logger }) => {
 
 // React to submission
 app.view("modal-clan-join", async ({ ack, body, view, client, logger }) => {
+  track("modal-clan-join", body.user.id);
+
   try {
     const joinCode =
       view.state.values["input-clan-join-code"]?.["action-clan-join"]?.value;
@@ -297,7 +311,7 @@ app.view("modal-clan-join", async ({ ack, body, view, client, logger }) => {
 
 // Open modal
 app.action("action-clan-join", async ({ ack, body, client, logger }) => {
-  // Acknowledge the button request
+  track("action-clan-join", body.user.id);
   await ack();
 
   try {
@@ -346,7 +360,8 @@ app.action("action-clan-join", async ({ ack, body, client, logger }) => {
 });
 
 app.action("action-clan-leave", async ({ ack, body, client, logger }) => {
-  console.log({ body, client });
+  track("action-clan-leave", body.user.id);
+
   // Acknowledge the button request
   await ack();
 
@@ -362,6 +377,8 @@ app.action("action-clan-leave", async ({ ack, body, client, logger }) => {
 });
 
 app.command("/sock-board", async ({ ack, body, client, logger }) => {
+  track("/sock-board", body.user_id);
+
   const intros = [
     "Here ye, here ye!",
     "Everysocky, gather around!",
@@ -422,7 +439,9 @@ app.command("/sock-board", async ({ ack, body, client, logger }) => {
 });
 
 app.command("/sock-team", async ({ ack, body, client, logger }) => {
+  track("/sock-team", body.user_id);
   await ack();
+
   const teamMembers =
     await sql`select u2.slack_id from users u1 join users u2 on u1.clan_id = u2.clan_id where u1.slack_id = ${body.user_id};`;
 
@@ -464,6 +483,7 @@ app.command("/sock-team", async ({ ack, body, client, logger }) => {
 
 // Listen for a slash command invocation
 app.command("/sock", async ({ ack, body, client, logger }) => {
+  track("/sock", body.user_id);
   await ack();
 
   app.logger.info(body);

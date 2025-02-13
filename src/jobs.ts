@@ -1,5 +1,5 @@
 import { Cron } from "croner";
-import { getSecondsCoded, hackSql } from "./db";
+import { getSecondsCoded, hackSql, track } from "./db";
 import { sql } from "bun";
 import { app } from "./bot";
 import { createWakaUser } from "./waka";
@@ -8,6 +8,8 @@ export function registerJobs() {
   app.logger.info("Registering jobs");
 
   new Cron("* * * * *", async () => {
+    track("job-sync");
+
     app.logger.debug("Syncing...");
 
     const lastTrackedHbIds = new Map<string, [number, Date]>(); // <users.slack_id, [heartbeats.id, heartbeats.time]>
