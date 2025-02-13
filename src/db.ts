@@ -79,11 +79,14 @@ export async function getSecondsCodedTotal(slackId: string) {
 //#region Telemetry
 export const statsSql = new SQL(process.env.STATS_PG_URL);
 export function track(evt: string, sid?: string) {
-  try {
-    const env = process.env.NODE_ENV ?? "development";
-    statsSql`insert into events (env, prj, evt, sid) values (${env}, 'sockathon', ${evt}, ${sid});`;
-  } catch (e) {
-    app.logger.error("Stats tracking err:", e);
-  }
+  const env = process.env.NODE_ENV ?? "development";
+
+  void (async () => {
+    try {
+      await statsSql`insert into events (env, prj, evt, sid) values (${env}, 'sockathon', ${evt}, ${sid});`;
+    } catch (e) {
+      app.logger.error("Stats tracking err:", e);
+    }
+  })();
 }
 //#endregion
