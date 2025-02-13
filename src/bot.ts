@@ -9,8 +9,9 @@ import {
   statsSql,
   track,
 } from "./db";
-import { ago } from "./utils";
+import { ago, capitaliseFirstLetter } from "./utils";
 import { registerJobs } from "./jobs";
+import { buildSockView } from "./ui";
 
 await setUpDb();
 
@@ -48,6 +49,7 @@ app.action("action-waka-setup-unix", async ({ ack, body, client, logger }) => {
       view: {
         type: "modal",
         callback_id: "modal-waka-setup-unix",
+        notify_on_close: true,
         title: {
           type: "plain_text",
           text: "Setup for macOS/Linux",
@@ -66,7 +68,6 @@ If you don't know what this means, that's okay! Follow these steps;
 1. Press ⌘ (command) and spacebar together, then search for "Terminal"
 2. Paste the following text in: \`echo "[settings]\\napi_url = https://waka.hackclub.com/api\\napi_key = ${apiKeyResponse.api_key}" > ~/.wakatime.cfg\`
 3. Press ⏎ return!
-4. Run \`/sock\` again
               `,
             },
           },
@@ -81,6 +82,27 @@ If you don't know what this means, that's okay! Follow these steps;
     logger.error(error);
   }
 });
+
+app.view(
+  { callback_id: "modal-waka-setup-windows", type: "view_closed" },
+  async ({ ack, body, view, client, logger }) => {
+    await ack({
+      response_action: "update",
+      view: await buildSockView(body),
+    });
+  },
+);
+
+app.view(
+  { callback_id: "modal-waka-setup-unix", type: "view_closed" },
+  async ({ ack, body, view, client, logger }) => {
+    logger.info("unix setup view closed");
+    await ack({
+      response_action: "update",
+      view: await buildSockView(body),
+    });
+  },
+);
 
 app.action(
   "action-waka-setup-windows",
@@ -103,6 +125,7 @@ app.action(
         view: {
           type: "modal",
           callback_id: "modal-waka-setup-windows",
+          notify_on_close: true,
           title: {
             type: "plain_text",
             text: "Setup for Windows",
@@ -121,7 +144,6 @@ If you don't know what this means, that's okay! Follow these steps;
 1. Press the Windows key, then search for "Powershell"
 2. Paste the following text in: \`cmd /c "echo [settings]>%USERPROFILE%\.wakatime.cfg && echo api_url = https://waka.hackclub.com/api>>%USERPROFILE%\.wakatime.cfg && echo api_key = ${apiKeyResponse.api_key}>>%USERPROFILE%\.wakatime.cfg"\`
 3. Press ⏎ return!
-4. Run \`/sock\` again
               `,
               },
             },
@@ -154,6 +176,7 @@ app.action("action-clan-create", async ({ ack, body, client, logger }) => {
       view: {
         type: "modal",
         callback_id: "modal-clan-create",
+        notify_on_close: true,
         title: {
           type: "plain_text",
           text: "Create a team",
@@ -188,126 +211,161 @@ app.action("action-clan-create", async ({ ack, body, client, logger }) => {
   }
 });
 
-// React to submission
-app.view("modal-clan-create", async ({ ack, body, view, client, logger }) => {
-  track("modal-clan-create", body.user.id);
+app.view(
+  { callback_id: "modal-clan-create", type: "view_closed" },
+  async ({ ack, body, view, client, logger }) => {
+    logger.info("modal-clan-create view_closed", { body });
 
-  try {
-    const newClanName =
-      view.state.values["input-clan-create-name"]?.["action-clan-create"]
-        ?.value;
-    const joinCode = Math.random().toString(36).substring(2, 6);
-
-    await sql.begin(async (tx) => {
-      const [newClan] =
-        await tx`insert into clans (name, join_code) values (${newClanName}, ${joinCode}) returning id`;
-      await tx`update users set clan_id = ${newClan.id} where slack_id = ${body.user.id};`;
-    });
-
-    if (!process.env.EVENT_CHANNEL) {
-      console.error("Env var EVENT_CHANNEL needs to be defined");
-      process.exit();
-    }
-
-    await client.chat.postMessage({
-      channel: process.env.EVENT_CHANNEL,
-      text: `_Awe-filled sock noises_\n*Translation:* ⚔️ _A new challenger approaches!_\n<@${body.user.id}> just founded team *${newClanName}*! DM them for the join code.`,
-    });
-    await client.chat.postMessage({
-      channel: body.user.id,
-      text: `_Proud sock noises_\n*Translation:* Team "${newClanName}" created successfully! Give people this join code: \`${joinCode}\`. Team sizes must be <= 6 people.`,
-    });
-    await ack();
-  } catch (err: any) {
-    if (err.errno === "23505") {
-      await ack({
-        response_action: "errors",
-        errors: {
-          "input-clan-create-name": "This team name is already taken!",
-        },
-      });
-    } else {
-      await ack({
-        response_action: "errors",
-        errors: {
-          "input-clan-create-name": err.toString(),
-        },
-      });
-    }
-  }
-});
-
-// React to submission
-app.view("modal-clan-join", async ({ ack, body, view, client, logger }) => {
-  track("modal-clan-join", body.user.id);
-
-  try {
-    const joinCode =
-      view.state.values["input-clan-join-code"]?.["action-clan-join"]?.value;
-
-    const clan = await sql.begin(async (tx) => {
-      const [clan] =
-        await tx`select clans.*, count(users) from clans join users on clans.id = users.clan_id where join_code = ${joinCode} group by clans.id;`;
-
-      if (!clan) return 0;
-      if (clan.count >= 6) return 1;
-
-      await tx`update users set clan_id = ${clan.id} where slack_id = ${body.user.id};`;
-
-      return clan;
-    });
-
-    if (!clan) {
-      await ack({
-        response_action: "errors",
-        errors: {
-          "input-clan-join-code":
-            "Invalid code! You should assert_eq!(code.len(), 4) then retry.",
-        },
-      });
-      return;
-    } else if (clan === 1) {
-      await ack({
-        response_action: "errors",
-        errors: {
-          "input-clan-join-code": "This team is already at 6 members!",
-        },
-      });
-      return;
-    }
-
-    const others =
-      await sql`select slack_id from users where clan_id = ${clan.id};`.then(
-        (res) =>
-          res.filter(
-            ({ slack_id }: { slack_id: string }) => slack_id !== body.user.id,
-          ),
-      );
-
-    if (!process.env.EVENT_CHANNEL) {
-      console.error("Env var EVENT_CHANNEL needs to be defined");
-      process.exit();
-    }
-
-    await client.chat.postMessage({
-      channel: process.env.EVENT_CHANNEL,
-      text: `_Happy sock noises_\n*Translation:* :huggies-fast: <@${body.user.id}> just joined *${clan.name}*${others.length > 0 ? `, teaming up with ${others.map(({ slack_id }: { slack_id: string }) => `<@${slack_id}>`).join(" & ")}` : "!"}`,
-    });
-    await client.chat.postMessage({
-      channel: body.user.id,
-      text: `_Excited sock noises_\n*Translation:* Team "${clan.name}" joined successfully! Give people this join code: \`${clan.join_code}\`. Team sizes must be <= 6 people.`,
-    });
-
-    await ack();
-  } catch (err: any) {
     await ack({
-      response_action: "errors",
-      errors: {
-        "input-clan-join-code": err.toString(),
-      },
+      response_action: "update",
+      view: await buildSockView(body),
     });
-  }
-});
+  },
+);
+
+// React to submission
+app.view(
+  { callback_id: "modal-clan-create", type: "view_submission" },
+  async ({ ack, body, view, client, logger }) => {
+    track("modal-clan-create", body.user.id);
+    logger.info("modal-clan-create view_submission");
+
+    try {
+      const newClanName =
+        view.state.values["input-clan-create-name"]?.["action-clan-create"]
+          ?.value;
+      const joinCode = Math.random().toString(36).substring(2, 6);
+
+      await sql.begin(async (tx) => {
+        const [newClan] =
+          await tx`insert into clans (name, join_code) values (${newClanName}, ${joinCode}) returning id`;
+        await tx`update users set clan_id = ${newClan.id} where slack_id = ${body.user.id};`;
+      });
+
+      if (!process.env.EVENT_CHANNEL) {
+        console.error("Env var EVENT_CHANNEL needs to be defined");
+        process.exit();
+      }
+
+      await client.chat.postMessage({
+        channel: process.env.EVENT_CHANNEL,
+        text: `_Awe-filled sock noises_\n*Translation:* ⚔️ _A new challenger approaches!_\n<@${body.user.id}> just founded team *${newClanName}*! DM them for the join code.`,
+      });
+      await client.chat.postMessage({
+        channel: body.user.id,
+        text: `_Proud sock noises_\n*Translation:* Team "${newClanName}" created successfully! Give people this join code: \`${joinCode}\`. Team sizes must be <= 6 people.`,
+      });
+      await ack({
+        response_action: "update",
+        view: await buildSockView(body),
+      });
+    } catch (err: any) {
+      if (err.errno === "23505") {
+        await ack({
+          response_action: "errors",
+          errors: {
+            "input-clan-create-name": "This team name is already taken!",
+          },
+        });
+      } else {
+        await ack({
+          response_action: "errors",
+          errors: {
+            "input-clan-create-name": err.toString(),
+          },
+        });
+      }
+    }
+  },
+);
+
+app.view(
+  { callback_id: "modal-clan-join", type: "view_closed" },
+  async ({ ack, body, view, client, logger }) => {
+    await ack({
+      response_action: "update",
+      view: await buildSockView(body),
+    });
+  },
+);
+
+// React to submission
+app.view(
+  { callback_id: "modal-clan-join", type: "view_submission" },
+  async ({ ack, body, view, client, logger }) => {
+    track("modal-clan-join", body.user.id);
+
+    try {
+      const joinCode =
+        view.state.values["input-clan-join-code"]?.["action-clan-join"]?.value;
+
+      const clan = await sql.begin(async (tx) => {
+        const [clan] =
+          await tx`select clans.*, count(users) from clans left join users on clans.id = users.clan_id where join_code = ${joinCode} group by clans.id;`;
+
+        if (!clan) return 0;
+        if (clan.count >= 6) return 1;
+
+        await tx`update users set clan_id = ${clan.id} where slack_id = ${body.user.id};`;
+
+        return clan;
+      });
+
+      if (!clan) {
+        await ack({
+          response_action: "errors",
+          errors: {
+            "input-clan-join-code":
+              "Invalid code! You should assert_eq!(code.len(), 4) then retry.",
+          },
+        });
+        return;
+      } else if (clan === 1) {
+        await ack({
+          response_action: "errors",
+          errors: {
+            "input-clan-join-code": "This team is already at 6 members!",
+          },
+        });
+        return;
+      }
+
+      const others =
+        await sql`select slack_id from users where clan_id = ${clan.id};`.then(
+          (res) =>
+            res.filter(
+              ({ slack_id }: { slack_id: string }) => slack_id !== body.user.id,
+            ),
+        );
+
+      if (!process.env.EVENT_CHANNEL) {
+        console.error("Env var EVENT_CHANNEL needs to be defined");
+        process.exit();
+      }
+
+      await client.chat.postMessage({
+        channel: process.env.EVENT_CHANNEL,
+        text: `_Happy sock noises_\n*Translation:* :huggies-fast: <@${body.user.id}> just joined *${clan.name}*${others.length > 0 ? `, teaming up with ${others.map(({ slack_id }: { slack_id: string }) => `<@${slack_id}>`).join(" & ")}` : "!"}`,
+      });
+      await client.chat.postMessage({
+        channel: body.user.id,
+        text: `_Excited sock noises_\n*Translation:* Team "${clan.name}" joined successfully! Give people this join code: \`${clan.join_code}\`. Team sizes must be <= 6 people.`,
+      });
+
+      await ack({
+        response_action: "update",
+        view: await buildSockView(body),
+      });
+    } catch (err: any) {
+      await ack({
+        response_action: "errors",
+        errors: {
+          "input-clan-join-code": err.toString(),
+        },
+      });
+    }
+  },
+);
 
 // Open modal
 app.action("action-clan-join", async ({ ack, body, client, logger }) => {
@@ -325,6 +383,7 @@ app.action("action-clan-join", async ({ ack, body, client, logger }) => {
       view: {
         type: "modal",
         callback_id: "modal-clan-join",
+        notify_on_close: true,
         title: {
           type: "plain_text",
           text: "Create a team",
@@ -404,7 +463,7 @@ app.command("/sock-board", async ({ ack, body, client, logger }) => {
         c.id, c.name
       ORDER BY
         total_seconds_coded desc;
-`;
+  `;
 
   const leaderboard = leaderboardRows.map(
     (
@@ -482,239 +541,17 @@ app.command("/sock-team", async ({ ack, body, client, logger }) => {
 });
 
 // Listen for a slash command invocation
-app.command("/sock", async ({ ack, body, client, logger }) => {
+app.command("/sockdev", async ({ ack, body, client, logger }) => {
   track("/sock", body.user_id);
   await ack();
 
   app.logger.info(body);
 
-  const userInfo = await app.client.users.info({ user: body.user_id });
-  console.log("sockinit", { userInfo });
-
-  if (!userInfo.ok || !userInfo?.user?.profile) {
-    logger.error(`Failed to get user profile for ${body.user_id}`);
-    return;
-  }
-  const { profile, real_name, tz, tz_label, tz_offset } = userInfo.user;
-
-  const [extendedUserRow] = await sql.begin(async (tx) => {
-    await tx`insert into users (slack_id, username, real_name, first_name, last_name, email, tz, tz_label, tz_offset) values
-      (${body.user_id}, ${body.user_name}, ${real_name}, ${profile.first_name}, ${profile.last_name}, ${profile.email}, ${tz}, ${tz_label}, ${tz_offset})
-      on conflict do nothing`;
-    return await tx`select users.*, clans.name as clan_name, clans.join_code from users left join clans on users.clan_id = clans.id where users.slack_id = ${body.user_id}`;
-  });
-
-  const wakaResponse = await createWakaUser(userInfo)
-    .then((d) => d.json())
-    .catch((err) => logger.error(err));
-
-  const latestWakaData = await getLatestWakaData(body.user_id);
-
-  let rn = eventStartDate.getTime() - Date.now();
-  let days = Math.floor(rn / (86400 * 1000));
-  rn -= days * (86400 * 1000);
-  let hours = Math.floor(rn / (60 * 60 * 1000));
-  rn -= hours * (60 * 60 * 1000);
-  let minutes = Math.floor(rn / (60 * 1000));
-
-  const teamInfoBlock = extendedUserRow.clan_name
-    ? {
-        type: "section",
-        text: {
-          type: "mrkdwn",
-          text: `✅ Be in a team; you're in *${extendedUserRow.clan_name}*. Others can join with \`${extendedUserRow.join_code}\``,
-        },
-      }
-    : {
-        type: "actions",
-        elements: [
-          {
-            type: "button",
-            text: {
-              type: "plain_text",
-              text: "Create a team :tada:",
-              emoji: true,
-            },
-            action_id: "action-clan-create",
-          },
-          {
-            type: "button",
-            text: {
-              type: "plain_text",
-              text: "Join a team :handshake:",
-              emoji: true,
-            },
-            action_id: "action-clan-join",
-          },
-        ],
-      };
-
-  const conditionalLeaveTeamButton = extendedUserRow.clan_id
-    ? [
-        {
-          type: "actions",
-          elements: [
-            {
-              type: "button",
-              text: {
-                type: "plain_text",
-                text: `Leave team ${extendedUserRow.clan_name} :X:`,
-                emoji: true,
-              },
-              action_id: "action-clan-leave",
-            },
-          ],
-        },
-      ]
-    : [];
-
-  const hakatimeInfoBlock = latestWakaData
-    ? [
-        {
-          type: "section",
-          text: {
-            type: "mrkdwn",
-            text: `✅ Set up Hakatime; ${ago(latestWakaData?.time)} you edited your ${latestWakaData?.language} project _${latestWakaData?.project}_ in ${latestWakaData?.editor}`,
-          },
-        },
-      ]
-    : [
-        {
-          type: "section",
-          text: {
-            type: "mrkdwn",
-            text: "_...and_ configure <https://github.com/hackclub/hackatime|Hakatime> so we can track how long you've coded.",
-          },
-        },
-        {
-          type: "actions",
-          elements: [
-            {
-              type: "button",
-              text: {
-                type: "plain_text",
-                text: "I'm on Windows :windows10-windows-10-logo:",
-                emoji: true,
-              },
-              action_id: "action-waka-setup-windows",
-            },
-            {
-              type: "button",
-              text: {
-                type: "plain_text",
-                text: "I'm on MacOS  or Linux :linux:",
-                emoji: true,
-              },
-              action_id: "action-waka-setup-unix",
-            },
-          ],
-        },
-      ];
-
-  const hakatimeInstallRefresher = latestWakaData
-    ? [
-        {
-          type: "actions",
-          elements: [
-            {
-              type: "button",
-              text: {
-                type: "plain_text",
-                text: "Windows install instructions ",
-                emoji: true,
-              },
-              action_id: "action-waka-setup-windows",
-            },
-            {
-              type: "button",
-              text: {
-                type: "plain_text",
-                text: "MacOS/Linux install instructions",
-                emoji: true,
-              },
-              action_id: "action-waka-setup-unix",
-            },
-          ],
-        },
-      ]
-    : [];
-
   try {
-    // Call views.open with the built-in client
-    const result = await client.views.open({
-      // Pass a valid trigger_id within 3 seconds of receiving it
+    const view = await buildSockView(body);
+    await client.views.open({
       trigger_id: body.trigger_id,
-      // View payload
-      view: {
-        type: "modal",
-        title: {
-          type: "plain_text",
-          text: "Welcome to Sockathon!",
-          emoji: true,
-        },
-        blocks: [
-          {
-            type: "section",
-            text: {
-              type: "mrkdwn",
-              text: `🧑‍💻 Code for 10 days straight on a *group project*;\n\n🫵 Get Hack Club socks!\n\n\n0. Join <#${process.env.EVENT_CHANNEL}>\n\n1. Form a team. Up to 6 people.`,
-            },
-            accessory: {
-              type: "image",
-              image_url:
-                "https://cdn.hackclubber.dev/slackcdn/2d084df51fb8808433741b78a9949577.png",
-              alt_text: "A pair of Hack Club socks",
-            },
-          },
-          {
-            type: "section",
-            text: {
-              type: "mrkdwn",
-              text: `2. Everyone must code for at least 15 mins per day, or you're all out.\n\n3. The team with the most hours after 10 days wins!\n\n\n‼️ Remember, you've all got to be working on the same project, committing to the repo every day! <https://forms.hackclub.com/t/fWcHAW3iE3us|At the end, you'll submit here.>`,
-            },
-          },
-          {
-            type: "divider",
-          },
-          {
-            type: "header",
-            text: {
-              type: "plain_text",
-              text: `What do I need to do to get started?`,
-              emoji: true,
-            },
-          },
-          {
-            type: "section",
-            text: {
-              type: "mrkdwn",
-              text: "To partake in these shenanigans, you must;",
-            },
-          },
-          teamInfoBlock,
-          ...hakatimeInfoBlock,
-          {
-            type: "divider",
-          },
-          // {
-          //   type: "section",
-          //   text: {
-          //     type: "mrkdwn",
-          //     text: "*Currently, your ass has done neither of these things.* The above will change as you complete them!",
-          //   },
-          // },
-          {
-            type: "header",
-            text: {
-              type: "plain_text",
-              text: `Starts in ${days} days, ${hours} hours, and ${minutes} minutes :clock10:!`,
-              emoji: true,
-            },
-          },
-          ...conditionalLeaveTeamButton,
-          ...hakatimeInstallRefresher,
-        ],
-      },
+      view,
     });
   } catch (error) {
     logger.error(error);
