@@ -159,8 +159,8 @@ export function registerJobs() {
                 text: `_Worried sock noises_\n*Translation:* It's 6pm ${tz_label.toLowerCase()}, and you haven't coded your 15 minutes yet today! You've got until midnight tonight. Don't be a smelly sock and let your team down!`,
               });
             } else if (
-              userTime.getUTCHours() === 19 &&
-              userTime.getUTCMinutes() === 24 &&
+              userTime.getUTCHours() === 23 &&
+              userTime.getUTCMinutes() === 59 &&
               minsCodedToday < 15 &&
               !clan_failed_at
             ) {
