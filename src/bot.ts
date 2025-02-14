@@ -544,12 +544,12 @@ app.command("/sock-team", async ({ ack, body, client, logger }) => {
 // Listen for a slash command invocation
 app.command("/sock", async ({ ack, body, client, logger }) => {
   track("/sock", body.user_id);
-  await ack();
 
   app.logger.info(body);
 
   try {
     const view = await buildSockView(body);
+    await ack();
     await client.views.open({
       trigger_id: body.trigger_id,
       view,
