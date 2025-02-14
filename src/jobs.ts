@@ -182,7 +182,7 @@ export function registerJobs() {
               clanSlackIds.forEach(async (id: string) => {
                 await app.client.chat.postMessage({
                   channel: id,
-                  text: `_Sad sock noises, sock tail between sock legs (?)_\n*Translation:* Sorry to have to tell you this, but *${clan.name}* is out of Sockathon, because ${slack_id === id ? "you" : `<@${slack_id}>`} didn't do their 15 minutes of coding today. Better luck next time! :tux-dance:`,
+                  text: `_Sad sock noises, sock tail between sock legs (?)_\n*Translation:* Sorry to have to tell you this, but *${clan.name}* is out of Sockathon, because ${slack_id === id ? "you" : `<@${slack_id}>`} didn't do ${slack_id === id ? "your" : "their"} 15 minutes of coding today. Better luck next time! :tux-dance:`,
                 });
               });
 
