@@ -5,7 +5,7 @@ import type {
 } from "@slack/bolt";
 import type { ViewsOpenArguments, View } from "@slack/web-api";
 
-import { app, eventStartDate } from "./bot";
+import { app, eventEndDate, eventStartDate } from "./bot";
 import { createWakaUser, getLatestWakaData } from "./waka";
 import { sql } from "bun";
 import { ago, capitaliseFirstLetter } from "./utils";
@@ -49,7 +49,11 @@ export async function buildSockView(
 
   const latestWakaData = await getLatestWakaData(slackId);
 
-  let rn = eventStartDate.getTime() - Date.now();
+  let rn =
+    Date.now() < eventStartDate.getTime()
+      ? eventStartDate.getTime() - Date.now()
+      : eventEndDate.getTime() - Date.now();
+
   let days = Math.floor(rn / (86400 * 1000));
   rn -= days * (86400 * 1000);
   let hours = Math.floor(rn / (60 * 60 * 1000));
@@ -186,7 +190,7 @@ export async function buildSockView(
         type: "section",
         text: {
           type: "mrkdwn",
-          text: `🧑‍💻 Code for 10 days straight on a *group project*;\n\n🫵 Get Hack Club socks!\n\n🕙 Starts in ${days} days, ${hours} hours, and ${minutes} minutes.`,
+          text: `🧑‍💻 Code for 10 days straight on a *group project*;\n\n🫵 Get Hack Club socks!\n\n🕙 ${Date.now() < eventStartDate.getTime() ? "Starts" : "Ends"} in ${days} days, ${hours} hours, and ${minutes} minutes.`,
         },
         accessory: {
           type: "image",
