@@ -7,6 +7,10 @@ import { createWakaUser } from "./waka";
 export function registerJobs() {
   app.logger.info("Registering jobs");
 
+  // Restart every hour (10 mins into the hour to be safe)
+  // This is because the bot becomes unresponsive after a while.
+  new Cron("10 * * * *", async () => process.exit());
+
   new Cron("* * * * *", async () => {
     track("job-sync");
 
