@@ -171,7 +171,7 @@ app.action(
 If you don't know what this means, that's okay! Follow these steps;
 
 1. Press the Windows key, then search for "Powershell"
-2. Paste the following text in: "[settings]\`napi_url = https://waka.hackclub.com/api\`napi_key = ${apiKeyResponse.api_key}" | Out-File -FilePath "$env:USERPROFILE\.wakatime.cfg"
+2. Paste the following text in: \`"[settings]\`napi_url = https://waka.hackclub.com/api\`napi_key = ${apiKeyResponse.api_key}" | Out-File -FilePath "$env:USERPROFILE\.wakatime.cfg"\`
 3. Press ⏎ return!
 4. Make sure you have the Wakatime extension installed in your code editor. See below!
               `,
