@@ -50,9 +50,8 @@ export async function buildSockView(
   const latestWakaData = await getLatestWakaData(slackId);
 
   const adjustedNowTimestamp = Date.now() + (tz_offset ?? 0) * 1000;
-  const adjustedStartTimestamp =
-    eventStartDate.getTime() + (tz_offset ?? 0) * 1000;
-  const adjustedEndTimestamp = eventEndDate.getTime() + (tz_offset ?? 0) * 1000;
+  const adjustedStartTimestamp = eventStartDate.getTime();
+  const adjustedEndTimestamp = eventEndDate.getTime();
 
   let rn =
     adjustedNowTimestamp < adjustedStartTimestamp
