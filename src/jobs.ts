@@ -1,7 +1,7 @@
 import { Cron } from "croner";
 import { getSecondsCoded, hackSql, track } from "./db";
 import { sql } from "bun";
-import { app } from "./bot";
+import { app, eventEndDate, eventStartDate } from "./bot";
 import { createWakaUser } from "./waka";
 
 export function registerJobs() {
@@ -111,7 +111,12 @@ export function registerJobs() {
           `Syncing ${userInfo.user.name} (${userInfo.user.id}) for ${date} before: ${secondsBefore / 60} mins, after: ${secondsAfter / 60} mins`,
         );
 
-        if (secondsBefore < 15 * 60 && secondsAfter > 15 * 60) {
+        if (
+          secondsBefore < 15 * 60 &&
+          secondsAfter > 15 * 60 &&
+          hbLocalTime > eventStartDate &&
+          hbLocalTime < eventEndDate
+        ) {
           await app.client.chat.postMessage({
             channel: process.env.EVENT_CHANNEL!,
             text: `_Relieved sock noises_\n*Translation:* No lint on these toes - <@${userInfo.user.id}> just hit the 15 min mark for today!`,
@@ -147,6 +152,11 @@ export function registerJobs() {
 
             // Adjust the UTC time by the user's time zone offset to get the user's local time
             const userTime = new Date(nowUTC + tz_offset * 1000);
+
+            if (userTime > eventEndDate || userTime < eventStartDate) {
+              console.log("Out of event bounds");
+              return;
+            }
 
             const minsCodedToday =
               (await getSecondsCoded(slack_id, userTime)) / 60;
