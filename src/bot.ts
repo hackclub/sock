@@ -29,8 +29,8 @@ await app.start();
 app.logger.info("Bolt app is running");
 registerJobs();
 
-export const eventStartDate = new Date("2025-02-10"); // 2025-02-17
-export const eventEndDate = new Date("2025-02-27");
+export const eventStartDate = new Date("2025-02-19");
+export const eventEndDate = new Date("2025-03-01");
 
 app.action("action-waka-setup-unix", async ({ ack, body, client, logger }) => {
   track("action-waka-setup-unix", body.user.id);
