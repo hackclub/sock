@@ -547,7 +547,7 @@ app.command("/sock-board", async ({ ack, body, client, logger }) => {
   );
 
   await client.chat.postMessage({
-    channel: process.env.EVENT_CHANNEL!,
+    channel: body.channel_id,
     text: `_Fanfare-y sock noises_\n*Translation:* ${intro} The <#${process.env.EVENT_CHANNEL}> standings are as follows:\n${leaderboard.join("\n")}\n\n> <@${body.user_id}> ran \`/sock-board\``,
   });
 
