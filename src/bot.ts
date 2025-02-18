@@ -503,19 +503,28 @@ app.command("/sock-team", async ({ ack, body, client, logger }) => {
   await ack();
 
   const teamMembers =
-    await sql`select u2.slack_id from users u1 join users u2 on u1.clan_id = u2.clan_id where u1.slack_id = ${body.user_id};`;
+    await sql`select u2.slack_id, u2.tz_offset from users u1 join users u2 on u1.clan_id = u2.clan_id where u1.slack_id = ${body.user_id};`;
 
   const [clan] =
     await sql`select c.name from users u join clans c on u.clan_id = c.id where u.slack_id = ${body.user_id};`;
 
   const stats = await Promise.all(
-    teamMembers.map(async ({ slack_id }: { slack_id: string }) => {
-      return [
+    teamMembers.map(
+      async ({
         slack_id,
-        (await getSecondsCoded(slack_id, new Date())) ?? 0,
-        (await getSecondsCodedTotal(slack_id)) ?? 0,
-      ];
-    }),
+        tz_offset,
+      }: {
+        slack_id: string;
+        tz_offset: number;
+      }) => {
+        const userDate = new Date(new Date().getTime() + tz_offset * 1_000);
+        return [
+          slack_id,
+          (await getSecondsCoded(slack_id, userDate)) ?? 0,
+          (await getSecondsCodedTotal(slack_id)) ?? 0,
+        ];
+      },
+    ),
   );
 
   stats.sort((a, b) => b[2] - a[2]);
