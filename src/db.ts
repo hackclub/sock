@@ -57,23 +57,61 @@ export async function setUpDb() {
 }
 
 export async function getSecondsCoded(slackId: string, date: Date) {
-  const [{ total_seconds_today }] =
-    await sql`SELECT SUM((project->>'total')::int) AS total_seconds_today
-                FROM user_hakatime_daily_summary,
-                LATERAL jsonb_array_elements(summary->'projects') AS project
-                WHERE user_id = ${slackId} AND date = ${date.toISOString()};`;
+  // const [{ total_seconds_today }] =
+  //   await sql`SELECT SUM((project->>'total')::int) AS total_seconds_today
+  //               FROM user_hakatime_daily_summary,
+  //               LATERAL jsonb_array_elements(summary->'projects') AS project
+  //               WHERE user_id = ${slackId} AND date = ${date.toISOString()};`;
 
-  return total_seconds_today;
+  const categoriesResultRaw = await sql`
+    SELECT summary->>'categories' as categories
+    FROM user_hakatime_daily_summary
+    WHERE user_id = ${slackId} AND date = ${date.toISOString()};`;
+
+  if (categoriesResultRaw.length === 0 || !categoriesResultRaw[0].categories) {
+    return 0;
+  }
+
+  const codingTotal =
+    JSON.parse(categoriesResultRaw[0].categories).find(
+      ({ key }: { key: string }) => key === "coding",
+    ).total ?? 0;
+
+  if (typeof codingTotal !== "number") {
+    return 0;
+  }
+
+  return codingTotal;
 }
 
 export async function getSecondsCodedTotal(slackId: string) {
-  const [{ total_seconds_today }] =
-    await sql`SELECT SUM((project->>'total')::int) AS total_seconds_today
-                FROM user_hakatime_daily_summary,
-                LATERAL jsonb_array_elements(summary->'projects') AS project
-                WHERE user_id = ${slackId} AND date >= ${eventStartDate.toISOString()};`;
+  try {
+    const categories = await sql`
+    SELECT summary->>'categories' as categories
+    FROM user_hakatime_daily_summary
+    JOIN users ON user_id = users.slack_id
+    WHERE users.slack_id = ${slackId};`;
 
-  return total_seconds_today;
+    const total = categories.reduce(
+      (acc: number, { categories }: { categories: string }) => {
+        const cats = JSON.parse(categories);
+        const coding = cats.find(
+          ({ key }: { key: string }) => key === "coding",
+        );
+        return acc + (coding?.total ?? 0);
+      },
+      0,
+    );
+
+    if (!total || typeof total !== "number") {
+      return 0;
+    }
+
+    return total;
+  } catch (error) {
+    console.error(error);
+    return 0;
+  }
 }
 
 //#region Telemetry
