@@ -69,7 +69,35 @@ If you don't know what this means, that's okay! Follow these steps;
 1. Press ⌘ (command) and spacebar together, then search for "Terminal"
 2. Paste the following text in: \`echo "[settings]\\napi_url = https://waka.hackclub.com/api\\napi_key = ${apiKeyResponse.api_key}" > ~/.wakatime.cfg\`
 3. Press ⏎ return!
+4. Make sure you have the Wakatime extension installed in your code editor. See below!
               `,
+            },
+          },
+          {
+            type: "header",
+            text: {
+              type: "plain_text",
+              text: "VS Code Wakatime Extension",
+            },
+          },
+          {
+            type: "image",
+            image_url:
+              "https://cdn.hackclubber.dev/slackcdn/26e4d7ce3d634df02d08defcdf74985d.png",
+            alt_text: "VS Code Wakatime extension install instructions",
+          },
+          {
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text: "If you pasted the snippet above, you don't need to paste the API key into the box in VS Code that pops up. It should be tracking your time automatically!",
+            },
+          },
+          {
+            type: "section",
+            text: {
+              type: "mrkdwn",
+              text: "If you're using a different editor, <https://wakatime.com/plugins|you can install the relevant WakaTime extension by reading the docs.>",
             },
           },
         ],
@@ -143,9 +171,37 @@ app.action(
 If you don't know what this means, that's okay! Follow these steps;
 
 1. Press the Windows key, then search for "Powershell"
-2. Paste the following text in: \`cmd /c "echo [settings]>%USERPROFILE%\.wakatime.cfg && echo api_url = https://waka.hackclub.com/api>>%USERPROFILE%\.wakatime.cfg && echo api_key = ${apiKeyResponse.api_key}>>%USERPROFILE%\.wakatime.cfg"\`
+2. Paste the following text in: "[settings]\`napi_url = https://waka.hackclub.com/api\`napi_key = ${apiKeyResponse.api_key}" | Out-File -FilePath "$env:USERPROFILE\.wakatime.cfg"
 3. Press ⏎ return!
+4. Make sure you have the Wakatime extension installed in your code editor. See below!
               `,
+              },
+            },
+            {
+              type: "header",
+              text: {
+                type: "plain_text",
+                text: "VS Code Wakatime Extension",
+              },
+            },
+            {
+              type: "image",
+              image_url:
+                "https://cdn.hackclubber.dev/slackcdn/26e4d7ce3d634df02d08defcdf74985d.png",
+              alt_text: "VS Code Wakatime extension install instructions",
+            },
+            {
+              type: "section",
+              text: {
+                type: "mrkdwn",
+                text: "If you pasted the snippet above, you don't need to paste the API key into the box in VS Code that pops up. It should be tracking your time automatically!",
+              },
+            },
+            {
+              type: "section",
+              text: {
+                type: "mrkdwn",
+                text: "If you're using a different editor, <https://wakatime.com/plugins|you can install the relevant WakaTime extension by reading the docs.>",
               },
             },
           ],
