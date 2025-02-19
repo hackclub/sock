@@ -616,8 +616,6 @@ app.command("/sock-team", async ({ ack, body, client, logger }) => {
 app.command("/sock", async ({ ack, body, client, logger }) => {
   track("/sock", body.user_id);
 
-  app.logger.info(body);
-
   try {
     const view = await buildSockView(body);
     await ack();
