@@ -1,15 +1,7 @@
 import { App } from "@slack/bolt";
 import { sql } from "bun";
-import { createWakaUser, getLatestWakaData } from "./waka";
-import {
-  getSecondsCoded,
-  getSecondsCodedTotal,
-  hackSql,
-  setUpDb,
-  statsSql,
-  track,
-} from "./db";
-import { ago, capitaliseFirstLetter } from "./utils";
+import { createWakaUser } from "./waka";
+import { getSecondsCoded, getSecondsCodedTotal, setUpDb, track } from "./db";
 import { registerJobs } from "./jobs";
 import { buildSockView } from "./ui";
 
@@ -27,9 +19,14 @@ export const app = new App({
 
 await app.start();
 app.logger.info("Bolt app is running");
+await app.client.chat.postEphemeral({
+  channel: process.env.EVENT_CHANNEL,
+  text: "Started",
+  user: "U03DFNYGPCN", // @Malted
+});
 registerJobs();
 
-export const eventStartDate = new Date("2025-02-19");
+export const eventStartDate = new Date("2025-02-20");
 export const eventEndDate = new Date("2025-03-01");
 
 app.action("action-waka-setup-unix", async ({ ack, body, client, logger }) => {
