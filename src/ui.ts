@@ -32,12 +32,46 @@ export async function buildSockView(
   }
   const { profile, real_name, tz, tz_label, tz_offset } = userInfo.user;
 
-  const [extendedUserRow] = await sql.begin(async (tx) => {
-    await tx`insert into users (slack_id, username, real_name, first_name, last_name, email, tz, tz_label, tz_offset) values
-      (${slackId}, ${slackUsername}, ${real_name}, ${profile.first_name}, ${profile.last_name}, ${profile.email}, ${tz}, ${tz_label}, ${tz_offset})
-      on conflict do nothing`;
-    return await tx`select users.*, clans.name as clan_name, clans.join_code from users left join clans on users.clan_id = clans.id where users.slack_id = ${slackId}`;
-  });
+  // Check if the event is already running. If it is, you can't join.
+  const adjustedNowTimestamp = Date.now() + (tz_offset ?? 0) * 1000;
+  console.log(ago(eventStartDate));
+  if (
+    adjustedNowTimestamp > eventStartDate.getTime() &&
+    !(await sql`select * from users where slack_id = ${slackId}`)[0]
+  ) {
+    return {
+      type: "modal",
+      callback_id: "modal-sock",
+      title: {
+        type: "plain_text",
+        text: `Sockathon has started!`,
+        emoji: true,
+      },
+      blocks: [
+        {
+          type: "image",
+          image_url:
+            "https://cdn.hack.pet/slackcdn/f4d5baac8d4e96673c7f1db537b2f6ee.png",
+          alt_text: "A sad-looking sock puppet",
+        },
+        {
+          type: "section",
+          text: {
+            type: "mrkdwn",
+            text: `_Regretful sock noises_\n*Translation:* I'm so sorry, but you've missed the start of the event - it started ${ago(eventStartDate)}! We'll run another one soon; keep an eye on <#C0266FRGT>!`,
+          },
+        },
+      ],
+    };
+  }
+
+  // Create the user in the Sockathon DB.
+  await sql`insert into users (slack_id, username, real_name, first_name, last_name, email, tz, tz_label, tz_offset) values
+    (${slackId}, ${slackUsername}, ${real_name}, ${profile.first_name}, ${profile.last_name}, ${profile.email}, ${tz}, ${tz_label}, ${tz_offset})
+    on conflict do nothing`;
+
+  const [extendedUserRow] =
+    await sql`select users.*, clans.name as clan_name, clans.join_code from users left join clans on users.clan_id = clans.id where users.slack_id = ${slackId}`;
 
   const wakaResponse = await createWakaUser(userInfo)
     .then((d) => d.json())
