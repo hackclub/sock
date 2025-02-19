@@ -233,7 +233,7 @@ export async function buildSockView(
         type: "section",
         text: {
           type: "mrkdwn",
-          text: `0. Join <#${process.env.EVENT_CHANNEL}>\n\n1. Form a team. Up to 6 people.\n\n2. Everyone must code for at least 15 mins per day, or you're all out.\n\n3. The team with the most hours after 10 days wins!\n\n‼️ You've *all* got to be working on the same project, *committing to the same repo* every day! <https://forms.hackclub.com/t/fWcHAW3iE3us|At the end, you'll submit here.>`,
+          text: `0. Join <#${process.env.EVENT_CHANNEL}>\n\n1. Form a team. Up to 6 people.\n\n2. Everyone must code for at least 15 mins per day, or you're all out.\n\n3. The team with the most hours after 10 days wins a grand prize!\n\n‼️ You've *all* got to be working on the same project, *committing to the same repo* every day! <https://forms.hackclub.com/t/fWcHAW3iE3us|At the end, you'll submit here.>`,
         },
       },
       {
