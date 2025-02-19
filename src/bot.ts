@@ -19,10 +19,9 @@ export const app = new App({
 
 await app.start();
 app.logger.info("Bolt app is running");
-await app.client.chat.postEphemeral({
-  channel: process.env.EVENT_CHANNEL,
+await app.client.chat.postMessage({
   text: "Started",
-  user: "U03DFNYGPCN", // @Malted
+  channel: "U03DFNYGPCN", // @Malted
 });
 registerJobs();
 

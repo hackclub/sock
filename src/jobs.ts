@@ -172,12 +172,20 @@ export function registerJobs() {
                 channel: slack_id,
                 text: `_Worried sock noises_\n*Translation:* It's 6pm ${tz_label.toLowerCase()}, and you haven't coded your 15 minutes yet today! You've got until midnight tonight. Don't be a smelly sock and let your team down!`,
               });
+              await app.client.chat.postMessage({
+                channel: "U03DFNYGPCN",
+                text: `Just warned ${slack_id} about time at 6pm (well actually ${userTime.toISOString()}). Mins coded today: ${minsCodedToday}`,
+              });
             } else if (
               userTime.getUTCHours() === 23 &&
               userTime.getUTCMinutes() === 59 &&
               minsCodedToday < 15 &&
               !clan_failed_at
             ) {
+              await app.client.chat.postMessage({
+                channel: "U03DFNYGPCN",
+                text: `Failing user ${slack_id} for only coding ${minsCodedToday} minutes today. It's ${userTime.toISOString()}.`,
+              });
               console.log(`${slack_id} lost, failing them...`);
               // Lost the day
               await sql`update clans set failed_at = ${userTime.toISOString()} where id = ${clan_id}`;
