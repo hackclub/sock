@@ -1,9 +1,5 @@
-import type {
-  SlackViewAction,
-  SlashCommand,
-  ViewClosedAction,
-} from "@slack/bolt";
-import type { ViewsOpenArguments, View } from "@slack/web-api";
+import type { SlackViewAction, SlashCommand } from "@slack/bolt";
+import type { View } from "@slack/web-api";
 
 import { app, eventEndDate, eventStartDate } from "./bot";
 import { createWakaUser, getLatestWakaData } from "./waka";
