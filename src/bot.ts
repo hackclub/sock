@@ -561,12 +561,11 @@ app.command("/sock-team", async ({ ack, body, client, logger }) => {
   const [clan] =
     await sql`select c.name from users u join clans c on u.clan_id = c.id where u.slack_id = ${body.user_id};`;
 
-  console.log(clan);
+  console.log(clan, body.channel_id);
 
   if (!clan) {
-    await client.chat.postEphemeral({
-      channel: body.channel_id,
-      user: body.user_id,
+    await client.chat.postMessage({
+      channel: body.user_id,
       text: "_Confused sock noises_\n*Translation:* You are not in a team! Run `/sock`, create one, and get some friends to join!",
     });
   }
