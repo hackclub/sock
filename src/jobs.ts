@@ -220,12 +220,14 @@ export function registerJobs() {
     // });
   });
 
-  while (true) {
-    const minuteCronStart = performance.now();
-    track("job-sync");
-    // Loop through users.
-    app.logger.info("SELECTING...");
-    sql`select * from users where clan_id is not null;`.then(async (users) => {
+  (async function () {
+    while (true) {
+      const minuteCronStart = performance.now();
+      track("job-sync");
+      // Loop through users.
+      app.logger.info("SELECTING...");
+      const users = await sql`select * from users where clan_id is not null;`;
+
       users.forEach(async (user) => {
         for (
           let date = eventStartDate;
@@ -261,6 +263,6 @@ export function registerJobs() {
         text: `sync job took ${performance.now() - minuteCronStart} ms`,
         channel: "U03DFNYGPCN", // @Malted
       });
-    });
-  }
+    }
+  })();
 }
