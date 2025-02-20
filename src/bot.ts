@@ -27,7 +27,7 @@ registerJobs();
 
 export const eventStartDate = new Date("2025-02-20");
 export const eventEndDate = new Date(
-  eventStartDate.getTime() + 1000 * 60 * 60 * 24 * 10,
+  eventStartDate.getTime() + 1000 * 60 * 60 * 24 * 10
 );
 
 app.action("action-waka-setup-unix", async ({ ack, body, client, logger }) => {
@@ -35,7 +35,7 @@ app.action("action-waka-setup-unix", async ({ ack, body, client, logger }) => {
 
   const userInfo = await app.client.users.info({ user: body.user.id });
   const apiKeyResponse = await createWakaUser({ slackId: body.user.id }).then(
-    (d) => d.json(),
+    (d) => d.json()
   );
 
   await ack();
@@ -61,15 +61,15 @@ app.action("action-waka-setup-unix", async ({ ack, body, client, logger }) => {
             block_id: "section-intro",
             text: {
               type: "mrkdwn",
-              text: `This should be the content of the file at \`~/.wakatime.cfg\`.
+              text: `Check the contents of \`~/.wakatime.cfg\` and it should look like this:
 \`\`\`\n[settings]\napi_url = https://waka.hackclub.com/api\napi_key = ${apiKeyResponse.api_key}\n\`\`\`
 
-If you don't know what this means, that's okay! Follow these steps;
+If you don't know what this means, that's okay! Just follow these steps;
 
 1. Press ⌘ (command) and spacebar together, then search for "Terminal"
 2. Paste the following text in: \`echo "[settings]\\napi_url = https://waka.hackclub.com/api\\napi_key = ${apiKeyResponse.api_key}" > ~/.wakatime.cfg\`
 3. Press ⏎ return!
-4. Make sure you have the Wakatime extension installed in your code editor. See below!
+4. Now just confirm that you have Wakatime installed in your editor (see links below) and you're good to go!
               `,
             },
           },
@@ -90,7 +90,7 @@ If you don't know what this means, that's okay! Follow these steps;
             type: "section",
             text: {
               type: "mrkdwn",
-              text: "If you pasted the snippet above, you don't need to paste the API key into the box in VS Code that pops up. It should be tracking your time automatically!",
+              text: "If you pasted the code snippet above, you don't need to paste your API key into any popup in VS Code. It should be tracking your time automatically!",
             },
           },
           {
@@ -103,7 +103,7 @@ If you don't know what this means, that's okay! Follow these steps;
         ],
         close: {
           type: "plain_text",
-          text: "Back",
+          text: "Ok take me back now",
         },
       },
     });
@@ -119,7 +119,7 @@ app.view(
       response_action: "update",
       view: await buildSockView(body),
     });
-  },
+  }
 );
 
 app.view(
@@ -130,7 +130,7 @@ app.view(
       response_action: "update",
       view: await buildSockView(body),
     });
-  },
+  }
 );
 
 app.action(
@@ -140,7 +140,7 @@ app.action(
 
     const userInfo = await app.client.users.info({ user: body.user.id });
     const apiKeyResponse = await createWakaUser({ slackId: body.user.id }).then(
-      (d) => d.json(),
+      (d) => d.json()
     );
 
     await ack();
@@ -167,7 +167,7 @@ app.action(
               block_id: "section-intro",
               text: {
                 type: "mrkdwn",
-                text: `This should be the content of the file at \`~/.wakatime.cfg\`.
+                text: `Check the contents of \`~/.wakatime.cfg\` and it should look like this:
 \`\`\`\n[settings]\napi_url = https://waka.hackclub.com/api\napi_key = ${apiKeyResponse.api_key}\n\`\`\`
 
 If you don't know what this means, that's okay! Follow these steps;
@@ -175,7 +175,7 @@ If you don't know what this means, that's okay! Follow these steps;
 1. Press the Windows key, then search for "Powershell"
 2. Paste the following text in: \`"[settings]\`napi_url = https://waka.hackclub.com/api\`napi_key = ${apiKeyResponse.api_key}" | Out-File -FilePath "$env:USERPROFILE\.wakatime.cfg"\`
 3. Press ⏎ return!
-4. Make sure you have the Wakatime extension installed in your code editor. See below!
+4. Now just confirm that you have Wakatime installed in your editor (see links below) and you're good to go!
               `,
               },
             },
@@ -196,7 +196,7 @@ If you don't know what this means, that's okay! Follow these steps;
               type: "section",
               text: {
                 type: "mrkdwn",
-                text: "If you pasted the snippet above, you don't need to paste the API key into the box in VS Code that pops up. It should be tracking your time automatically!",
+                text: "If you pasted the code snippet above, you don't need to paste your API key into any popup in VS Code. It should be tracking your time automatically!",
               },
             },
             {
@@ -209,14 +209,14 @@ If you don't know what this means, that's okay! Follow these steps;
           ],
           close: {
             type: "plain_text",
-            text: "Back",
+            text: "Ok take me back now",
           },
         },
       });
     } catch (error) {
       logger.error(error);
     }
-  },
+  }
 );
 
 // Open modal
@@ -250,14 +250,14 @@ app.action("action-clan-create", async ({ ack, body, client, logger }) => {
             },
             label: {
               type: "plain_text",
-              text: "Name your team",
+              text: "Give your team a cool name:",
               emoji: true,
             },
           },
         ],
         close: {
           type: "plain_text",
-          text: "Back",
+          text: "Ok take me back now",
         },
         submit: {
           type: "plain_text",
@@ -279,7 +279,7 @@ app.view(
       response_action: "update",
       view: await buildSockView(body),
     });
-  },
+  }
 );
 
 // React to submission
@@ -308,11 +308,11 @@ app.view(
 
       await client.chat.postMessage({
         channel: process.env.EVENT_CHANNEL,
-        text: `_Awe-filled sock noises_\n*Translation:* ⚔️ _A new challenger approaches!_\n<@${body.user.id}> just founded team *${newClanName}*! DM them for the join code.`,
+        text: `_Awe-filled sock noises_\n*Translation:* ⚔️ _A new ~challenger~ sock approaches!_\n<@${body.user.id}> just founded team *${newClanName}*! If you would like to join, reach out to them!`,
       });
       await client.chat.postMessage({
         channel: body.user.id,
-        text: `_Proud sock noises_\n*Translation:* Team "${newClanName}" created successfully! Give people this join code: \`${joinCode}\`. Team sizes must be <= 6 people.`,
+        text: `_Proud sock noises_\n*Translation:* Using the power of two whole socks, Team "${newClanName}" has been created! To let others join your new team, give them this code: \`${joinCode}\`. Team sizes must be <= 6 people.`,
       });
       await ack({
         response_action: "update",
@@ -323,7 +323,8 @@ app.view(
         await ack({
           response_action: "errors",
           errors: {
-            "input-clan-create-name": "This team name is already taken!",
+            "input-clan-create-name":
+              "This team name is already taken! Try another one...",
           },
         });
       } else {
@@ -335,7 +336,7 @@ app.view(
         });
       }
     }
-  },
+  }
 );
 
 app.view(
@@ -345,7 +346,7 @@ app.view(
       response_action: "update",
       view: await buildSockView(body),
     });
-  },
+  }
 );
 
 // React to submission
@@ -393,8 +394,8 @@ app.view(
         await sql`select slack_id from users where clan_id = ${clan.id};`.then(
           (res) =>
             res.filter(
-              ({ slack_id }: { slack_id: string }) => slack_id !== body.user.id,
-            ),
+              ({ slack_id }: { slack_id: string }) => slack_id !== body.user.id
+            )
         );
 
       if (!process.env.EVENT_CHANNEL) {
@@ -404,11 +405,19 @@ app.view(
 
       await client.chat.postMessage({
         channel: process.env.EVENT_CHANNEL,
-        text: `_Happy sock noises_\n*Translation:* :huggies-fast: <@${body.user.id}> just joined *${clan.name}*${others.length > 0 ? `, teaming up with ${others.map(({ slack_id }: { slack_id: string }) => `<@${slack_id}>`).join(" & ")}` : "!"}`,
+        text: `_Happy sock noises_\n*Translation:* :huggies-fast: <@${
+          body.user.id
+        }> just joined *${clan.name}*${
+          others.length > 0
+            ? `, teaming up with ${others
+                .map(({ slack_id }: { slack_id: string }) => `<@${slack_id}>`)
+                .join(" & ")}`
+            : "!"
+        }`,
       });
       await client.chat.postMessage({
         channel: body.user.id,
-        text: `_Excited sock noises_\n*Translation:* Team "${clan.name}" joined successfully! Give people this join code: \`${clan.join_code}\`. Team sizes must be <= 6 people.`,
+        text: `_Excited sock noises_\n*Translation:* Team "${clan.name}" joined successfully! If you want others to join, give them this join code: \`${clan.join_code}\`. Team sizes must be <= 6 people.`,
       });
 
       await ack({
@@ -423,7 +432,7 @@ app.view(
         },
       });
     }
-  },
+  }
 );
 
 // Open modal
@@ -457,7 +466,7 @@ app.action("action-clan-join", async ({ ack, body, client, logger }) => {
             },
             label: {
               type: "plain_text",
-              text: "Enter your 4-character join code",
+              text: "Enter your 4-character join code here",
               emoji: true,
             },
           },
@@ -536,7 +545,7 @@ app.command("/sock-board", async ({ ack, body, client, logger }) => {
         usernames: string[];
         total_seconds_coded: number;
       },
-      idx: number,
+      idx: number
     ) => {
       let medal =
         idx === 0
@@ -553,7 +562,11 @@ app.command("/sock-board", async ({ ack, body, client, logger }) => {
 
   await client.chat.postMessage({
     channel: body.channel_id,
-    text: `_Fanfare-y sock noises_\n*Translation:* ${intro} The <#${process.env.EVENT_CHANNEL}> standings are as follows:\n${leaderboard.join("\n")}\n\n> <@${body.user_id}> ran \`/sock-board\``,
+    text: `_Fanfare-y sock noises_\n*Translation:* ${intro} The <#${
+      process.env.EVENT_CHANNEL
+    }> standings are as follows:\n${leaderboard.join("\n")}\n\n> <@${
+      body.user_id
+    }> ran \`/sock-board\``,
   });
 
   await ack();
@@ -595,8 +608,8 @@ app.command("/sock-team", async ({ ack, body, client, logger }) => {
           (await getSecondsCoded(slack_id, new Date())) ?? 0,
           (await getSecondsCodedTotal(slack_id)) ?? 0,
         ];
-      },
-    ),
+      }
+    )
   );
 
   stats.sort((a, b) => b[3] - a[3]);
@@ -607,18 +620,23 @@ app.command("/sock-team", async ({ ack, body, client, logger }) => {
         idx === 0
           ? ":first_place_medal: "
           : idx === 1
-            ? ":second_place_medal: "
-            : idx === 2
-              ? ":third_place_medal: "
-              : "";
+          ? ":second_place_medal: "
+          : idx === 2
+          ? ":third_place_medal: "
+          : "";
 
-      return `${medal} \`@${username}\` coded ${(totalCoded / 3600).toFixed(1)} hours total (${(coded / 60).toFixed(1)} mins today)`;
+      return `${medal} \`@${username}\` coded ${(totalCoded / 3600).toFixed(
+        1
+      )} hours total (${(coded / 60).toFixed(1)} mins today)`;
     })
     .join("\n");
 
   await client.chat.postMessage({
     channel: body.channel_id,
-    text: `_Proclamatory sock noises_\n*Translation:* <#${process.env.EVENT_CHANNEL!}> standings for team *${clan.name}*:\n${board}\n\n> <@${body.user_id}> ran \`/sock-team\``,
+    text: `_Proclamatory sock noises_\n*Translation:* <#${process.env
+      .EVENT_CHANNEL!}> standings for team *${clan.name}*:\n${board}\n\n> <@${
+      body.user_id
+    }> ran \`/sock-team\``,
   });
 });
 
