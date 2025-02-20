@@ -25,7 +25,7 @@ export function registerJobs() {
           );
 
     const recentHeartbeats =
-      await hackSql`SELECT * FROM heartbeats WHERE id > ${minIdToSearchFor} ORDER BY crated_at DESC LIMIT 10000;`;
+      await hackSql`SELECT * FROM heartbeats WHERE id > ${minIdToSearchFor} ORDER BY created_by DESC LIMIT 10000;`;
 
     await app.client.chat.postMessage({
       text: `minutesyncjob got ${recentHeartbeats.length} new hbs`,
