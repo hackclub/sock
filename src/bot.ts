@@ -516,7 +516,8 @@ app.command("/sock-board", async ({ ack, body, client, logger }) => {
   const leaderboardRows = await sql`SELECT
         c.id AS clan_id,
         c.name AS clan_name,
-        COALESCE(SUM((project->>'total')::int), 0) AS total_seconds_coded
+        COALESCE(SUM((project->>'total')::int), 0) AS total_seconds_coded,
+        jsonb_agg(distinct u.username) AS usernames
       FROM
         clans c
       LEFT JOIN
@@ -537,9 +538,11 @@ app.command("/sock-board", async ({ ack, body, client, logger }) => {
     (
       {
         clan_name,
+        usernames,
         total_seconds_coded,
       }: {
         clan_name: string;
+        usernames: string[];
         total_seconds_coded: number;
       },
       idx: number
@@ -548,15 +551,13 @@ app.command("/sock-board", async ({ ack, body, client, logger }) => {
         idx === 0
           ? ":first_place_medal:"
           : idx === 1
-          ? ":second_place_medal:"
-          : idx === 2
-          ? ":third_place_medal:"
-          : "";
+            ? ":second_place_medal:"
+            : idx === 2
+              ? ":third_place_medal:"
+              : "";
 
-      return `${medal} ${clan_name}: ${(total_seconds_coded / 60 / 60).toFixed(
-        1
-      )} hours`;
-    }
+      return `${medal} ${clan_name}: ${(total_seconds_coded / 60 / 60).toFixed(1)} hours (${usernames.map((u) => `\`@${u}\``).join(" & ")})`;
+    },
   );
 
   await client.chat.postMessage({
