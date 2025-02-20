@@ -71,8 +71,6 @@ export function registerJobs() {
             clan_id: number;
             clan_failed_at: string;
           }) => {
-            console.log({ clan_failed_at });
-            console.log("Processing user", slack_id);
             if (!clan_id) return;
 
             // Get the current UTC time in milliseconds
@@ -80,6 +78,16 @@ export function registerJobs() {
 
             // Adjust the UTC time by the user's time zone offset to get the user's local time
             const userTime = new Date(nowUTC + tz_offset * 1000);
+
+            app.logger.info({
+              slack_id,
+              tz_offset,
+              userTime,
+              eventStartDate,
+              eventEndDate,
+              before: userTime > eventEndDate,
+              after: userTime < eventStartDate,
+            });
 
             if (userTime > eventEndDate || userTime < eventStartDate) {
               console.log("Out of event bounds");
