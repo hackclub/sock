@@ -20,7 +20,7 @@ export function registerJobs() {
 
     for (const user of users) {
       for (
-        let date = eventStartDate;
+        let date = new Date(eventStartDate);
         date <= eventEndDate;
         date.setDate(date.getDate() + 1)
       ) {
