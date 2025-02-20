@@ -11,7 +11,7 @@ export function registerJobs() {
   // This is because the bot becomes unresponsive after a while.
   new Cron("10 * * * *", async () => process.exit());
 
-  new Cron("* * * * *", async () => {
+  new Cron("* * * * *", { protect: true }, async () => {
     const minuteCronStart = performance.now();
     track("job-sync");
     // Loop through users.
