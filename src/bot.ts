@@ -250,7 +250,7 @@ app.action("action-clan-create", async ({ ack, body, client, logger }) => {
             },
             label: {
               type: "plain_text",
-              text: "Name your team",
+              text: "Give your team a cool name:",
               emoji: true,
             },
           },
@@ -308,11 +308,11 @@ app.view(
 
       await client.chat.postMessage({
         channel: process.env.EVENT_CHANNEL,
-        text: `_Awe-filled sock noises_\n*Translation:* ⚔️ _A new challenger approaches!_\n<@${body.user.id}> just founded team *${newClanName}*! DM them for the join code.`,
+        text: `_Awe-filled sock noises_\n*Translation:* ⚔️ _A new challenger approaches!_\n<@${body.user.id}> just founded team *${newClanName}*! If you would like to join, reach out to them!`,
       });
       await client.chat.postMessage({
         channel: body.user.id,
-        text: `_Proud sock noises_\n*Translation:* Team "${newClanName}" created successfully! Give people this join code: \`${joinCode}\`. Team sizes must be <= 6 people.`,
+        text: `_Proud sock noises_\n*Translation:* Using the power of two socks, Team "${newClanName}" has been created! To let others join your new team, give them this code: \`${joinCode}\`. Team sizes must be <= 6 people.`,
       });
       await ack({
         response_action: "update",
@@ -323,7 +323,7 @@ app.view(
         await ack({
           response_action: "errors",
           errors: {
-            "input-clan-create-name": "This team name is already taken!",
+            "input-clan-create-name": "This team name is already taken! Try another one...",
           },
         });
       } else {
@@ -408,7 +408,7 @@ app.view(
       });
       await client.chat.postMessage({
         channel: body.user.id,
-        text: `_Excited sock noises_\n*Translation:* Team "${clan.name}" joined successfully! Give people this join code: \`${clan.join_code}\`. Team sizes must be <= 6 people.`,
+        text: `_Excited sock noises_\n*Translation:* Team "${clan.name}" joined successfully! If you want others to join, give them this join code: \`${clan.join_code}\`. Team sizes must be <= 6 people.`,
       });
 
       await ack({
@@ -457,7 +457,7 @@ app.action("action-clan-join", async ({ ack, body, client, logger }) => {
             },
             label: {
               type: "plain_text",
-              text: "Enter your 4-character join code",
+              text: "Enter your 4-character join code here",
               emoji: true,
             },
           },
