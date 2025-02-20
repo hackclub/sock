@@ -224,6 +224,7 @@ export function registerJobs() {
     const minuteCronStart = performance.now();
     track("job-sync");
     // Loop through users.
+    app.logger.info("SELECTING...");
     sql`select * from users where clan_id is not null;`.then(async (users) => {
       users.forEach(async (user) => {
         for (
@@ -251,6 +252,7 @@ export function registerJobs() {
             },
           ).then((res) => res.json());
 
+          app.logger.info("INSERTING...");
           await sql`insert into user_hakatime_daily_summary (user_id, date, summary) values (${user.slack_id}, ${date}, ${summaryRes}) on conflict (user_id, date) do update set summary = excluded.summary;`;
         }
       });
