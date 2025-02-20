@@ -174,7 +174,7 @@ export function registerJobs() {
               });
               await app.client.chat.postMessage({
                 channel: "U03DFNYGPCN",
-                text: `Just warned ${slack_id} about time at 6pm (well actually ${userTime.toISOString()}). Mins coded today: ${minsCodedToday}`,
+                text: `Just warned <@${slack_id}> about time at 6pm (well actually ${userTime.toISOString()}). Mins coded today: ${minsCodedToday}`,
               });
             } else if (
               userTime.getUTCHours() === 23 &&
