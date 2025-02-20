@@ -12,116 +12,48 @@ export function registerJobs() {
   new Cron("10 * * * *", async () => process.exit());
 
   new Cron("* * * * *", async () => {
-    //   const minuteCronStart = performance.now();
-    //   track("job-sync");
+    const minuteCronStart = performance.now();
+    track("job-sync");
+    // Loop through users.
+    app.logger.info("SELECTING...");
+    const users = await sql`select * from users where clan_id is not null;`;
 
-    //   app.logger.debug("Syncing...");
+    users.forEach(async (user) => {
+      for (
+        let date = eventStartDate;
+        date <= eventEndDate;
+        date.setDate(date.getDate() + 1)
+      ) {
+        const localStartDate = new Date(date.getTime() + user.tz_offset * 1000);
+        const localEndDate = new Date(
+          localStartDate.getTime() + 1_000 * 60 * 60 * 24,
+        );
 
-    //   const lastTrackedHbIds = new Map<string, [number, Date]>(); // <users.slack_id, [heartbeats.id, heartbeats.time]>
-    //   const minIdToSearchFor =
-    //     lastTrackedHbIds.size === 0
-    //       ? 0
-    //       : Math.max(
-    //           ...Array.from(lastTrackedHbIds.values()).map(([num]) => num),
-    //         );
+        const { api_key } = await createWakaUser({
+          slackId: user.slack_id,
+        }).then((res) => res.json());
 
-    //   const recentHeartbeats =
-    //     await hackSql`SELECT * FROM heartbeats WHERE id > ${minIdToSearchFor} ORDER BY created_at DESC LIMIT 1000000;`;
+        const summaryRes = await fetch(
+          `https://waka.hackclub.com/api/summary?from=${encodeURIComponent(localStartDate.toISOString())}&to=${encodeURIComponent(localEndDate.toISOString())}&recompute=true`,
+          {
+            headers: {
+              Authorization: `Bearer ${api_key}`,
+            },
+          },
+        ).then((res) => res.json());
 
-    //   await app.client.chat.postMessage({
-    //     text: `minutesyncjob got ${recentHeartbeats.length} new hbs`,
-    //     channel: "U03DFNYGPCN", // @Malted
-    //   });
+        app.logger.info("INSERTING...");
+        await sql`insert into user_hakatime_daily_summary (user_id, date, summary) values (${user.slack_id}, ${date}, ${summaryRes}) on conflict (user_id, date) do update set summary = excluded.summary;`;
+        await new Promise((r) => setTimeout(r, 500));
+      }
+    });
 
-    //   if (recentHeartbeats.length === 0) return; // No new heartbeats to process
+    await app.client.chat.postMessage({
+      text: `sync job took ${performance.now() - minuteCronStart} ms`,
+      channel: "U03DFNYGPCN", // @Malted
+    });
 
-    //   for (const hb of recentHeartbeats) {
-    //     const slackId: string = hb.user_id.slice(-11);
-    //     const currentEntry = lastTrackedHbIds.get(slackId);
-
-    //     if (!currentEntry || hb.id > currentEntry[0]) {
-    //       lastTrackedHbIds.set(slackId, [hb.id, hb.time]);
-    //     }
-    //   }
-
-    //   // For each entry, normalise the time zone, to determine which summary day should be fetched.
-    //   for (const [
-    //     slackId,
-    //     [lastHbId, lastHbTime],
-    //   ] of lastTrackedHbIds.entries()) {
-    //     try {
-    //       // The wakatime `time`s are in UTC. Convert them to the user's static time zone, then decide the day.
-    //       // const userInfo = await app.client.users.info({ user: slackId });
-    //       // if (!userInfo.user?.id)
-    //       //   throw new Error(`No user found from provided Slack ID ${slackId}`);
-
-    //       const [user] =
-    //         await sql`select * from users where slack_id = ${slackId}`;
-    //       if (!user) continue;
-
-    //       const userTzOffsetMs = user.tz_offset * 1_000;
-    //       const hbLocalTime = new Date(lastHbTime.getTime() + userTzOffsetMs);
-
-    //       const startOfLocalDayTimestamp = Date.UTC(
-    //         hbLocalTime.getFullYear(),
-    //         hbLocalTime.getMonth(),
-    //         hbLocalTime.getDate(),
-    //       );
-
-    //       // End of day (23:59:59.999)
-    //       const endOfDayLocal = new Date(
-    //         hbLocalTime.getFullYear(),
-    //         hbLocalTime.getMonth(),
-    //         hbLocalTime.getDate(),
-    //         23,
-    //         59,
-    //         59,
-    //         999,
-    //       );
-    //       const endOfDayUtc = new Date(endOfDayLocal.getTime() - userTzOffsetMs);
-
-    //       const { api_key } = await createWakaUser({ slackId }).then((res) =>
-    //         res.json(),
-    //       );
-
-    //       const summaryRes = await fetch(
-    //         `https://waka.hackclub.com/api/summary?from=${encodeURIComponent(startOfDayUtc.toISOString())}&to=${encodeURIComponent(endOfDayUtc.toISOString())}&recompute=true`,
-    //         {
-    //           headers: {
-    //             Authorization: `Bearer ${api_key}`,
-    //           },
-    //         },
-    //       );
-
-    //       const summaryResJson = await summaryRes.json();
-
-    //       const secondsBefore =
-    //         (await getSecondsCoded(slackId, startOfDayUtc)) ?? 0;
-
-    //       const date = startOfDayUtc.toISOString().split("T")[0];
-    //       await sql`insert into user_hakatime_daily_summary (user_id, date, summary) values (${slackId}, ${date}, ${summaryResJson}) on conflict (user_id, date) do update set summary = excluded.summary;`;
-
-    //       const secondsAfter = await getSecondsCoded(slackId, startOfDayUtc);
-
-    //       app.logger.info(
-    //         `Syncing(${slackId}) for ${date} before: ${secondsBefore / 60} mins, after: ${secondsAfter / 60} mins`,
-    //       );
-
-    //       if (
-    //         secondsBefore < 15 * 60 &&
-    //         secondsAfter > 15 * 60 &&
-    //         hbLocalTime > eventStartDate &&
-    //         hbLocalTime < eventEndDate
-    //       ) {
-    //         await app.client.chat.postMessage({
-    //           channel: process.env.EVENT_CHANNEL!,
-    //           text: `_Relieved sock noises_\n*Translation:* No lint on these toes - <@${slackId}> just hit the 15 min mark for today!`,
-    //         });
-    //       }
-    //     } catch (e) {
-    //       console.error("Sync iteraton failed: ", e);
-    //     }
-    //   }
+    await new Promise((r) => setTimeout(r, 5_000));
 
     sql`select slack_id, tz_label, tz_offset, clans.id as clan_id, clans.failed_at as clan_failed_at from users join clans on users.clan_id = clans.id;`.then(
       (users) => {
@@ -213,59 +145,11 @@ export function registerJobs() {
         );
       },
     );
-
-    // await app.client.chat.postMessage({
-    //   text: `minutesyncjob took ${performance.now() - minuteCronStart} ms`,
-    //   channel: "U03DFNYGPCN", // @Malted
-    // });
   });
 
-  (async function () {
-    while (true) {
-      const minuteCronStart = performance.now();
-      track("job-sync");
-      // Loop through users.
-      app.logger.info("SELECTING...");
-      const users = await sql`select * from users where clan_id is not null;`;
+  // (async function () {
+  //   while (true) {
 
-      users.forEach(async (user) => {
-        for (
-          let date = eventStartDate;
-          date <= eventEndDate;
-          date.setDate(date.getDate() + 1)
-        ) {
-          const localStartDate = new Date(
-            date.getTime() + user.tz_offset * 1000,
-          );
-          const localEndDate = new Date(
-            localStartDate.getTime() + 1_000 * 60 * 60 * 24,
-          );
-
-          const { api_key } = await createWakaUser({
-            slackId: user.slack_id,
-          }).then((res) => res.json());
-
-          const summaryRes = await fetch(
-            `https://waka.hackclub.com/api/summary?from=${encodeURIComponent(localStartDate.toISOString())}&to=${encodeURIComponent(localEndDate.toISOString())}&recompute=true`,
-            {
-              headers: {
-                Authorization: `Bearer ${api_key}`,
-              },
-            },
-          ).then((res) => res.json());
-
-          app.logger.info("INSERTING...");
-          await sql`insert into user_hakatime_daily_summary (user_id, date, summary) values (${user.slack_id}, ${date}, ${summaryRes}) on conflict (user_id, date) do update set summary = excluded.summary;`;
-          await new Promise((r) => setTimeout(r, 500));
-        }
-      });
-
-      await app.client.chat.postMessage({
-        text: `sync job took ${performance.now() - minuteCronStart} ms`,
-        channel: "U03DFNYGPCN", // @Malted
-      });
-
-      await new Promise((r) => setTimeout(r, 5_000));
-    }
-  })();
+  //   }
+  // })();
 }
