@@ -12,6 +12,7 @@ export function registerJobs() {
   new Cron("10 * * * *", async () => process.exit());
 
   new Cron("* * * * *", async () => {
+    const minuteCronStart = performance.now();
     track("job-sync");
 
     app.logger.debug("Syncing...");
@@ -222,5 +223,10 @@ export function registerJobs() {
         );
       },
     );
+
+    await app.client.chat.postMessage({
+      text: `minutesyncjob took ${performance.now() - minuteCronStart} ms`,
+      channel: "U03DFNYGPCN", // @Malted
+    });
   });
 }
