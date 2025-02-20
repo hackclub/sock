@@ -32,12 +32,15 @@ export async function buildSockView(
   }
   const { profile, real_name, tz, tz_label, tz_offset } = userInfo.user;
 
+  const [preliminaryUser] =
+    await sql`select * from users where slack_id = ${slackId}`;
+
   // Check if the event is already running. If it is, you can't join.
   const adjustedNowTimestamp = Date.now() + (tz_offset ?? 0) * 1000;
   console.log(ago(eventStartDate));
   if (
     adjustedNowTimestamp > eventStartDate.getTime() &&
-    !(await sql`select * from users where slack_id = ${slackId}`)[0]
+    !preliminaryUser?.clan_id // Checking if the user exists and is in a clan
   ) {
     return {
       type: "modal",
