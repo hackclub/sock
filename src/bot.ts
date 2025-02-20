@@ -547,7 +547,7 @@ app.command("/sock-board", async ({ ack, body, client, logger }) => {
               ? ":third_place_medal:"
               : "";
 
-      return `${medal} ${clan_name}: ${(total_seconds_coded / 60 / 60).toFixed(1)} hours (\`${usernames}\`)`;
+      return `${medal} ${clan_name}: ${(total_seconds_coded / 60 / 60).toFixed(1)} hours (${usernames.map((u) => `\`@${u}\``).join(" & ")})`;
     },
   );
 
