@@ -155,7 +155,7 @@ export function registerJobs() {
             }
 
             const minsCodedToday =
-              (await getSecondsCoded(slack_id, userTime)) / 60;
+              (await getSecondsCoded(slack_id, new Date())) / 60;
 
             if (
               userTime.getUTCHours() === 18 &&
@@ -214,10 +214,10 @@ export function registerJobs() {
       },
     );
 
-    await app.client.chat.postMessage({
-      text: `minutesyncjob took ${performance.now() - minuteCronStart} ms`,
-      channel: "U03DFNYGPCN", // @Malted
-    });
+    // await app.client.chat.postMessage({
+    //   text: `minutesyncjob took ${performance.now() - minuteCronStart} ms`,
+    //   channel: "U03DFNYGPCN", // @Malted
+    // });
   });
 
   while (true) {

@@ -584,10 +584,9 @@ app.command("/sock-team", async ({ ack, body, client, logger }) => {
         slack_id: string;
         tz_offset: number;
       }) => {
-        const userDate = new Date(new Date().getTime() + tz_offset * 1_000);
         return [
           slack_id,
-          (await getSecondsCoded(slack_id, userDate)) ?? 0,
+          (await getSecondsCoded(slack_id, new Date())) ?? 0,
           (await getSecondsCodedTotal(slack_id)) ?? 0,
         ];
       },
