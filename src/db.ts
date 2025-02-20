@@ -100,9 +100,10 @@ export async function getSecondsCodedTotal(slackId: string) {
           .filter(({ key }: { key: string }) =>
             ["coding", "building", "debugging"].includes(key),
           )
-          .reduce((acc: number, { total }: { total: number }) => {
-            acc += total;
-          }, 0);
+          .reduce(
+            (acc: number, { total }: { total: number }) => acc + total,
+            0,
+          );
 
         return acc + dayTotal;
       },
