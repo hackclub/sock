@@ -1,5 +1,5 @@
 import { SQL, sql } from "bun";
-import { app } from "./bot";
+import { app, eventEndDate, eventStartDate } from "./bot";
 
 if (
   !process.env.HACK_PG_URL ||
@@ -91,7 +91,7 @@ export async function getSecondsCodedTotal(slackId: string) {
     SELECT summary->>'categories' as categories
     FROM user_hakatime_daily_summary
     JOIN users ON user_id = users.slack_id
-    WHERE users.slack_id = ${slackId};`;
+    WHERE users.slack_id = ${slackId} and date >= ${eventStartDate} and date <= ${eventEndDate};`;
 
     const total = days.reduce(
       (acc: number, { categories }: { categories: string }) => {
