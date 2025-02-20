@@ -263,6 +263,8 @@ export function registerJobs() {
         text: `sync job took ${performance.now() - minuteCronStart} ms`,
         channel: "U03DFNYGPCN", // @Malted
       });
+
+      await new Promise((r) => setTimeout(r, 5_000));
     }
   })();
 }
