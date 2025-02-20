@@ -493,7 +493,47 @@ app.action("action-clan-leave", async ({ ack, body, client, logger }) => {
     logger.error(error);
   }
 });
+// for slack cmd thing
+// /sock-rename [new name]
+app.command('/sock-rename', async ({ ack, body, client, logger, command  }) => {
+  const newName = command.text
+  track("/sock-rename", body.user_id);
+  await ack();
 
+  const [clan] =
+    await sql`select c.id from users u join clans c on u.clan_id = c.id where u.slack_id = ${body.user_id};`;
+  if (!clan) {
+    await app.client.chat.postEphemeral({
+      user: body.user_id,
+      text: "_Confused sock noises_\n*Translation:* You are not in a team! Run `/sock`, create one, and get some friends to join!",
+    })
+    return;
+  }
+  // update to new name
+  try {
+    await sql`update clans set name = "${newName}" where id = "${clan}";`
+    
+    if (!process.env.EVENT_CHANNEL) {
+      console.error("Env var EVENT_CHANNEL needs to be defined");
+      process.exit();
+    }
+
+    await client.chat.postMessage({
+      channel: process.env.EVENT_CHANNEL,
+      text: `_Awe-filled sock noises_\n*Translation:* ⚔️ _A name change has happened!_\n<@${body.user.id}> just renamed there team to *${newName}*!`,
+    });
+  } catch (err:any) {
+    if (err.errno === "23505") {
+      await app.client.chat.postEphemeral({
+        user: body.user_id,
+        text: "Sorry this name is taken!",
+      })
+    } else {
+logger.error(err)
+    }
+  }
+
+})
 app.command("/sock-board", async ({ ack, body, client, logger }) => {
   track("/sock-board", body.user_id);
 
