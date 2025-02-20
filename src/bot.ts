@@ -561,7 +561,7 @@ app.command("/sock-team", async ({ ack, body, client, logger }) => {
   await ack();
 
   const teamMembers =
-    await sql`select u2.slack_id, u2.real_name, u2.tz_offset from users u1 join users u2 on u1.clan_id = u2.clan_id where u1.slack_id = ${body.user_id};`;
+    await sql`select u2.slack_id, u2.username, u2.tz_offset from users u1 join users u2 on u1.clan_id = u2.clan_id where u1.slack_id = ${body.user_id};`;
 
   const [clan] =
     await sql`select c.name from users u join clans c on u.clan_id = c.id where u.slack_id = ${body.user_id};`;
@@ -579,16 +579,16 @@ app.command("/sock-team", async ({ ack, body, client, logger }) => {
     teamMembers.map(
       async ({
         slack_id,
-        real_name,
+        username,
         tz_offset,
       }: {
         slack_id: string;
-        real_name: string;
+        username: string;
         tz_offset: number;
       }) => {
         return [
           slack_id,
-          real_name,
+          username,
           (await getSecondsCoded(slack_id, new Date())) ?? 0,
           (await getSecondsCodedTotal(slack_id)) ?? 0,
         ];
@@ -599,7 +599,7 @@ app.command("/sock-team", async ({ ack, body, client, logger }) => {
   stats.sort((a, b) => b[3] - a[3]);
 
   const board = stats
-    .map(([slackId, real_name, coded, totalCoded], idx) => {
+    .map(([slackId, username, coded, totalCoded], idx) => {
       let medal =
         idx === 0
           ? ":first_place_medal: "
@@ -609,7 +609,7 @@ app.command("/sock-team", async ({ ack, body, client, logger }) => {
               ? ":third_place_medal: "
               : "";
 
-      return `${medal} ${real_name} coded ${(totalCoded / 3600).toFixed(1)} hours total (${(coded / 60).toFixed(1)} mins today)`;
+      return `${medal} \`@${username}\` coded ${(totalCoded / 3600).toFixed(1)} hours total (${(coded / 60).toFixed(1)} mins today)`;
     })
     .join("\n");
 
