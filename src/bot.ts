@@ -26,7 +26,9 @@ await app.client.chat.postMessage({
 registerJobs();
 
 export const eventStartDate = new Date("2025-02-20");
-export const eventEndDate = new Date("2025-03-01");
+export const eventEndDate = new Date(
+  eventStartDate.getTime() + 1000 * 60 * 60 * 24 * 10,
+);
 
 app.action("action-waka-setup-unix", async ({ ack, body, client, logger }) => {
   track("action-waka-setup-unix", body.user.id);
