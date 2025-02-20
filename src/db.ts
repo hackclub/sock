@@ -72,33 +72,39 @@ export async function getSecondsCoded(slackId: string, date: Date) {
     return 0;
   }
 
-  const codingTotal =
-    JSON.parse(categoriesResultRaw[0].categories).find(
-      ({ key }: { key: string }) => key === "coding",
-    ).total ?? 0;
+  const total = JSON.parse(categoriesResultRaw[0].categories)
+    .filter(({ key }: { key: string }) =>
+      ["coding", "building", "debugging"].includes(key),
+    )
+    .reduce((acc: number, { total }: { total: number }) => acc + total, 0);
 
-  if (typeof codingTotal !== "number") {
+  if (typeof total !== "number") {
     return 0;
   }
 
-  return codingTotal;
+  return total;
 }
 
 export async function getSecondsCodedTotal(slackId: string) {
   try {
-    const categories = await sql`
+    const days = await sql`
     SELECT summary->>'categories' as categories
     FROM user_hakatime_daily_summary
     JOIN users ON user_id = users.slack_id
     WHERE users.slack_id = ${slackId};`;
 
-    const total = categories.reduce(
+    const total = days.reduce(
       (acc: number, { categories }: { categories: string }) => {
         const cats = JSON.parse(categories);
-        const coding = cats.find(
-          ({ key }: { key: string }) => key === "coding",
-        );
-        return acc + (coding?.total ?? 0);
+        const dayTotal = cats
+          .filter(({ key }: { key: string }) =>
+            ["coding", "building", "debugging"].includes(key),
+          )
+          .reduce((acc: number, { total }: { total: number }) => {
+            acc += total;
+          }, 0);
+
+        return acc + dayTotal;
       },
       0,
     );
