@@ -18,7 +18,7 @@ export function registerJobs() {
     app.logger.info("SELECTING...");
     const users = await sql`select * from users where clan_id is not null;`;
 
-    users.forEach(async (user) => {
+    for (const user of users) {
       for (
         let date = eventStartDate;
         date <= eventEndDate;
@@ -46,7 +46,7 @@ export function registerJobs() {
         await sql`insert into user_hakatime_daily_summary (user_id, date, summary) values (${user.slack_id}, ${date.toISOString()}, ${summaryRes}) on conflict (user_id, date) do update set summary = excluded.summary;`;
         await new Promise((r) => setTimeout(r, 500));
       }
-    });
+    }
 
     await app.client.chat.postMessage({
       text: `sync job took ${performance.now() - minuteCronStart} ms`,
