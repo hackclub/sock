@@ -21,7 +21,7 @@ export function registerJobs() {
     const minIdToSearchFor =
       lastTrackedHbIds.size === 0
         ? 0
-        : Math.min(
+        : Math.max(
             ...Array.from(lastTrackedHbIds.values()).map(([num]) => num),
           );
 
