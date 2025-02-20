@@ -76,7 +76,7 @@ export async function buildSockView(
   const [extendedUserRow] =
     await sql`select users.*, clans.name as clan_name, clans.join_code from users left join clans on users.clan_id = clans.id where users.slack_id = ${slackId}`;
 
-  const wakaResponse = await createWakaUser(userInfo)
+  const wakaResponse = await createWakaUser({ slackId })
     .then((d) => d.json())
     .catch((err) => app.logger.error(err));
 

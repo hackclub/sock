@@ -51,9 +51,9 @@ export function registerJobs() {
     ] of lastTrackedHbIds.entries()) {
       try {
         // The wakatime `time`s are in UTC. Convert them to the user's static time zone, then decide the day.
-        const userInfo = await app.client.users.info({ user: slackId });
-        if (!userInfo.user?.id)
-          throw new Error(`No user found from provided Slack ID ${slackId}`);
+        // const userInfo = await app.client.users.info({ user: slackId });
+        // if (!userInfo.user?.id)
+        //   throw new Error(`No user found from provided Slack ID ${slackId}`);
 
         const [user] =
           await sql`select * from users where slack_id = ${slackId}`;
@@ -87,7 +87,7 @@ export function registerJobs() {
         );
         const endOfDayUtc = new Date(endOfDayLocal.getTime() - userTzOffsetMs);
 
-        const { api_key } = await createWakaUser(userInfo).then((res) =>
+        const { api_key } = await createWakaUser({ slackId }).then((res) =>
           res.json(),
         );
 
@@ -103,18 +103,15 @@ export function registerJobs() {
         const summaryResJson = await summaryRes.json();
 
         const secondsBefore =
-          (await getSecondsCoded(userInfo.user.id, startOfDayUtc)) ?? 0;
+          (await getSecondsCoded(slackId, startOfDayUtc)) ?? 0;
 
         const date = startOfDayUtc.toISOString().split("T")[0];
-        await sql`insert into user_hakatime_daily_summary (user_id, date, summary) values (${userInfo.user.id}, ${date}, ${summaryResJson}) on conflict (user_id, date) do update set summary = excluded.summary;`;
+        await sql`insert into user_hakatime_daily_summary (user_id, date, summary) values (${slackId}, ${date}, ${summaryResJson}) on conflict (user_id, date) do update set summary = excluded.summary;`;
 
-        const secondsAfter = await getSecondsCoded(
-          userInfo.user.id,
-          startOfDayUtc,
-        );
+        const secondsAfter = await getSecondsCoded(slackId, startOfDayUtc);
 
         app.logger.info(
-          `Syncing ${userInfo.user.name} (${userInfo.user.id}) for ${date} before: ${secondsBefore / 60} mins, after: ${secondsAfter / 60} mins`,
+          `Syncing(${slackId}) for ${date} before: ${secondsBefore / 60} mins, after: ${secondsAfter / 60} mins`,
         );
 
         if (
@@ -125,7 +122,7 @@ export function registerJobs() {
         ) {
           await app.client.chat.postMessage({
             channel: process.env.EVENT_CHANNEL!,
-            text: `_Relieved sock noises_\n*Translation:* No lint on these toes - <@${userInfo.user.id}> just hit the 15 min mark for today!`,
+            text: `_Relieved sock noises_\n*Translation:* No lint on these toes - <@${slackId}> just hit the 15 min mark for today!`,
           });
         }
       } catch (e) {

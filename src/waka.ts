@@ -1,32 +1,21 @@
-import type { UsersInfoResponse } from "@slack/web-api";
 import { sql } from "bun";
 import { hackSql } from "./db";
 
-export async function createWakaUser(userInfo: UsersInfoResponse) {
+export async function createWakaUser({ slackId }: { slackId: string }) {
   if (!process.env.WAKA_API_KEY) {
     console.error("Env var WAKA_API_KEY not set. Exiting.");
     process.exit();
   }
 
-  if (
-    !userInfo.ok ||
-    !userInfo.user ||
-    !userInfo.user.id ||
-    !userInfo.user.name
-  ) {
-    throw new Error("Invalid user info");
-  }
-
-  const [userRow] =
-    await sql`select hakatime_password from users where slack_id = ${userInfo.user.id};`;
+  const [userRow] = await sql`select * from users where slack_id = ${slackId};`;
 
   const payload = {
-    location: userInfo.user.tz ?? "Factory",
-    email: "malted@hackclub.com", //userInfo.user.profile?.email ?? "",
+    location: userRow.tz ?? "Factory",
+    email: userRow.email ?? "",
     password: userRow.hakatime_password,
     password_repeat: userRow.hakatime_password,
-    name: userInfo.user.name,
-    username: userInfo.user.id,
+    name: userRow.real_name,
+    username: userRow.slack_id,
   };
 
   return await fetch("https://waka.hackclub.com/signup", {

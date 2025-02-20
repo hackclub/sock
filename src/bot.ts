@@ -34,7 +34,9 @@ app.action("action-waka-setup-unix", async ({ ack, body, client, logger }) => {
   track("action-waka-setup-unix", body.user.id);
 
   const userInfo = await app.client.users.info({ user: body.user.id });
-  const apiKeyResponse = await createWakaUser(userInfo).then((d) => d.json());
+  const apiKeyResponse = await createWakaUser({ slackId: body.user.id }).then(
+    (d) => d.json(),
+  );
 
   await ack();
 
@@ -137,7 +139,9 @@ app.action(
     track("action-waka-setup-windows", body.user.id);
 
     const userInfo = await app.client.users.info({ user: body.user.id });
-    const apiKeyResponse = await createWakaUser(userInfo).then((d) => d.json());
+    const apiKeyResponse = await createWakaUser({ slackId: body.user.id }).then(
+      (d) => d.json(),
+    );
 
     await ack();
 
