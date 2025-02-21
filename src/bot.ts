@@ -551,8 +551,9 @@ app.command("/sock-board", async ({ ack, body, client, logger }) => {
     },
   );
 
-  await client.chat.postMessage({
+  await client.chat.postEphemeral({
     channel: body.channel_id,
+    user: body.user_id,
     text: `_Fanfare-y sock noises_\n*Translation:* ${intro} The <#${process.env.EVENT_CHANNEL}> standings are as follows:\n${leaderboard.join("\n")}\n\n> <@${body.user_id}> ran \`/sock-board\``,
   });
 
@@ -572,8 +573,9 @@ app.command("/sock-team", async ({ ack, body, client, logger }) => {
   console.log(clan, body.channel_id);
 
   if (!clan) {
-    await client.chat.postMessage({
-      channel: body.user_id,
+    await client.chat.postEphemeral({
+      channel: body.channel_id,
+      user: body.user_id,
       text: "_Confused sock noises_\n*Translation:* You are not in a team! Run `/sock`, create one, and get some friends to join!",
     });
   }
@@ -616,8 +618,9 @@ app.command("/sock-team", async ({ ack, body, client, logger }) => {
     })
     .join("\n");
 
-  await client.chat.postMessage({
+  await client.chat.postEphemeral({
     channel: body.channel_id,
+    user: body.user_id,
     text: `_Proclamatory sock noises_\n*Translation:* <#${process.env.EVENT_CHANNEL!}> standings for team *${clan.name}*:\n${board}\n\n> <@${body.user_id}> ran \`/sock-team\``,
   });
 });
