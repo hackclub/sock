@@ -42,6 +42,13 @@ export function registerJobs() {
           },
         ).then((res) => res.json());
 
+        if (user.slack_id === "U03DFNYGPCN") {
+          await app.client.chat.postMessage({
+            text: `date: ${date.toISOString()}\tlocalstartdate: ${localStartDate.toISOString()}\tlocalEndDate: ${localEndDate.toISOString()}\tsummaryRes: ${JSON.stringify(summaryRes)}`,
+            channel: "U03DFNYGPCN", // @Malted
+          });
+        }
+
         app.logger.info("INSERTING...");
         await sql`insert into user_hakatime_daily_summary (user_id, date, summary) values (${user.slack_id}, ${localStartDate.toISOString()}, ${summaryRes}) on conflict (user_id, date) do update set summary = excluded.summary;`;
         await new Promise((r) => setTimeout(r, 500));
