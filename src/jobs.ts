@@ -24,7 +24,7 @@ export function registerJobs() {
         date <= eventEndDate;
         date.setDate(date.getDate() + 1)
       ) {
-        const localStartDate = new Date(date.getTime() + user.tz_offset * 1000);
+        const localStartDate = new Date(date.getTime() - user.tz_offset * 1000); // utc time of the start of the user's day
         const localEndDate = new Date(
           localStartDate.getTime() + 1_000 * 60 * 60 * 24,
         );
